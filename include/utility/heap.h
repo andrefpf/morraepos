@@ -20,6 +20,8 @@ public:
     using Grouping_List<char>::size;
     using Grouping_List<char>::grouped_size;
 
+    void * start_address;   // used for testing
+
     Heap() {
         db<Init, Heaps>(TRC) << "Heap() => " << this << endl;
     }
@@ -27,6 +29,7 @@ public:
     Heap(void * addr, unsigned int bytes) {
         db<Init, Heaps>(TRC) << "Heap(addr=" << addr << ",bytes=" << bytes << ") => " << this << endl;
 
+        start_address = addr;
         free(addr, bytes);
     }
 
@@ -55,7 +58,7 @@ public:
         int * addr = reinterpret_cast<int *>(e->object() + e->size());
 
         if(typed)
-            *addr++ = reinterpret_cast<int>(this);
+            *addr++ = reinterpret_cast<size_t>(this);
         *addr++ = bytes;
 
         db<Heaps>(TRC) << ") => " << reinterpret_cast<void *>(addr) << endl;

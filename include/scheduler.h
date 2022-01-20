@@ -145,6 +145,27 @@ public:
     FCFS(int p = NORMAL, Tn & ... an);
 };
 
+class DeadlineMonotonic: public Priority
+{
+public:
+    static const bool timed = false;
+    static const bool dynamic = false;
+    static const bool preemptive = true;
+
+public:
+    DeadlineMonotonic(int i): Priority(i), _deadline(0), _period(0), _capacity(0) {}
+    DeadlineMonotonic(int i, const Microsecond & d, const Microsecond & p, const Microsecond & c)
+    : Priority(d), _deadline(d), _period(p), _capacity(c) {}
+
+    const Microsecond period() {return _period;}
+    void period(const Microsecond & p) {_period = p;}
+
+public:
+    Microsecond _deadline;
+    Microsecond _period;
+    Microsecond _capacity;
+};
+
 __END_SYS
 
 #endif

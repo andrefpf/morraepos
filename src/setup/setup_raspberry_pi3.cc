@@ -10,8 +10,8 @@ extern "C" {
     void _bss_clear();
 
     // SETUP entry point is the Vector Table and resides in the .init section (not in .text), so it will be linked first and will be the first function after the ELF header in the image.
-    void _entry() __attribute__ ((used, naked, section(".init")));
-    void _reset() __attribute__ ((naked)); // so it can be safely reached from the vector table
+    void _entry() __attribute__ ((used, section(".init")));
+    void _reset(); // so it can be safely reached from the vector table
     void _setup(); // just to create a Setup object
 
     // LD eliminates this variable while performing garbage collection, so --undefined=__boot_time_system_info must be present while linking
@@ -127,18 +127,18 @@ Setup::Setup()
             build_pmm();
 
             // Print basic facts about this EPOS instance
-            say_hi();
+            // say_hi();
 
             // Configure the memory model defined above
-            setup_sys_pt();
-            setup_app_pt();
-            setup_sys_pd();
+            // setup_sys_pt();
+            // setup_app_pt();
+            // setup_sys_pd();
 
             // Enable paging
-            enable_paging();
+            // enable_paging();
 
             // Load EPOS parts (e.g. INIT, SYSTEM, APPLICATION)
-            load_parts();
+            // load_parts();
 
         } else { // library mode
 
@@ -689,123 +689,123 @@ void Setup::enable_paging()
         db<Setup>(INF) << "sp=" << CPU::sp() << endl;
     }
 
-    // MNG_DOMAIN for no page permission verification, CLI_DOMAIN otherwise
-    CPU::dacr((Traits<System>::multitask) ? CPU::CLI_DOMAIN : CPU::MNG_DOMAIN); 
+    // // MNG_DOMAIN for no page permission verification, CLI_DOMAIN otherwise
+    // CPU::dacr((Traits<System>::multitask) ? CPU::CLI_DOMAIN : CPU::MNG_DOMAIN); 
 
-    CPU::dsb();
-    CPU::isb();
+    // CPU::dsb();
+    // CPU::isb();
 
-    // Clear TTBCR for the system to use ttbr0 instead of 1
-    CPU::ttbcr(0);
-    // Set ttbr0 with base address
-    CPU::ttbr0((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
+    // // Clear TTBCR for the system to use ttbr0 instead of 1
+    // CPU::ttbcr(0);
+    // // Set ttbr0 with base address
+    // CPU::ttbr0((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
 
-    // Enable MMU through SCTLR and ACTLR
-    CPU::actlr(CPU::actlr() | CPU::SMP); // Set SMP bit
-    CPU::sctlr((CPU::sctlr() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE) & ~(CPU::AFE));
+    // // Enable MMU through SCTLR and ACTLR
+    // CPU::actlr(CPU::actlr() | CPU::SMP); // Set SMP bit
+    // CPU::sctlr((CPU::sctlr() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE) & ~(CPU::AFE));
 
-    CPU::dsb();
-    CPU::isb();
+    // CPU::dsb();
+    // CPU::isb();
 
-    // MMU now enabled - Virtual address system now active
-    // Branch Prediction Enable
-    CPU::sctlr(CPU::sctlr() | (1 << 11)); // Z bit
+    // // MMU now enabled - Virtual address system now active
+    // // Branch Prediction Enable
+    // CPU::sctlr(CPU::sctlr() | (1 << 11)); // Z bit
 
-    // Flush TLB to ensure we've got the right memory organization
-    MMU::flush_tlb();
+    // // Flush TLB to ensure we've got the right memory organization
+    // MMU::flush_tlb();
 
-    // Adjust pointers that will still be used to their logical addresses
-    Display::init(); // adjust the pointers in Display by calling init 
+    // // Adjust pointers that will still be used to their logical addresses
+    // Display::init(); // adjust the pointers in Display by calling init 
 
-    if(Traits<Setup>::hysterically_debugged) {
-        db<Setup>(INF) << "pc=" << CPU::pc() << endl;
-        db<Setup>(INF) << "sp=" << CPU::sp() << endl;
-    }
+    // if(Traits<Setup>::hysterically_debugged) {
+    //     db<Setup>(INF) << "pc=" << CPU::pc() << endl;
+    //     db<Setup>(INF) << "sp=" << CPU::sp() << endl;
+    // }
 }
 
 void Setup::load_parts()
 {
-    db<Setup>(TRC) << "Setup::load_parts()" << endl;
+    // db<Setup>(TRC) << "Setup::load_parts()" << endl;
 
-    // Relocate System_Info
-    if(sizeof(System_Info) > sizeof(Page))
-        db<Setup>(WRN) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
+    // // Relocate System_Info
+    // if(sizeof(System_Info) > sizeof(Page))
+    //     db<Setup>(WRN) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
 
-    if(Traits<Setup>::hysterically_debugged)
-        db<Setup>(INF) << "Setup:SYS_INFO: " << MMU::Translation(SYS_INFO) << endl;
-    memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
-    si = reinterpret_cast<System_Info *>(SYS_INFO);
+    // if(Traits<Setup>::hysterically_debugged)
+    //     db<Setup>(INF) << "Setup:SYS_INFO: " << MMU::Translation(SYS_INFO) << endl;
+    // memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
+    // si = reinterpret_cast<System_Info *>(SYS_INFO);
 
-    // Load INIT
-    if(si->lm.has_ini) {
-        db<Setup>(TRC) << "Setup::load_init()" << endl;
-        ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
-        if(Traits<Setup>::hysterically_debugged) {
-            db<Setup>(INF) << "Setup:ini_elf: " << MMU::Translation(ini_elf) << endl;
-            db<Setup>(INF) << "Setup:ini_elf[0]: " << MMU::Translation(ini_elf->segment_address(0)) << endl;
-            db<Setup>(INF) << "Setup:ini_elf[0].size: " << ini_elf->segment_size(0) << endl;
-        }
-        if(ini_elf->load_segment(0) < 0) {
-            db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
-            panic();
-        }
-        for(int i = 1; i < ini_elf->segments(); i++)
-            if(ini_elf->load_segment(i) < 0) {
-                db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
-                panic();
-            }
-    }
+    // // Load INIT
+    // if(si->lm.has_ini) {
+    //     db<Setup>(TRC) << "Setup::load_init()" << endl;
+    //     ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+    //     if(Traits<Setup>::hysterically_debugged) {
+    //         db<Setup>(INF) << "Setup:ini_elf: " << MMU::Translation(ini_elf) << endl;
+    //         db<Setup>(INF) << "Setup:ini_elf[0]: " << MMU::Translation(ini_elf->segment_address(0)) << endl;
+    //         db<Setup>(INF) << "Setup:ini_elf[0].size: " << ini_elf->segment_size(0) << endl;
+    //     }
+    //     if(ini_elf->load_segment(0) < 0) {
+    //         db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
+    //         panic();
+    //     }
+    //     for(int i = 1; i < ini_elf->segments(); i++)
+    //         if(ini_elf->load_segment(i) < 0) {
+    //             db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
+    //             panic();
+    //         }
+    // }
 
-    // Load SYSTEM
-    if(si->lm.has_sys) {
-        db<Setup>(TRC) << "Setup::load_os()" << endl;
-        ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
-        if(Traits<Setup>::hysterically_debugged) {
-            db<Setup>(INF) << "Setup:sys_elf: " << MMU::Translation(sys_elf) << endl;
-            db<Setup>(INF) << "Setup:sys_elf[0]: " << MMU::Translation(sys_elf->segment_address(0)) << endl;
-            db<Setup>(INF) << "Setup:sys_elf[0].size: " << sys_elf->segment_size(0) << endl;
-        }
-        if(sys_elf->load_segment(0) < 0 || sys_elf->load_segment(1) < 0) {
-            db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
-            panic();
-        }
-        for(int i = 2; i < sys_elf->segments(); i++) {
-            if(sys_elf->load_segment(i) < 0) {
-                db<Setup>(ERR) << "OS data segment was corrupted during SETUP!" << endl;
-                panic();
-            }
-        }
-    }
+    // // Load SYSTEM
+    // if(si->lm.has_sys) {
+    //     db<Setup>(TRC) << "Setup::load_os()" << endl;
+    //     ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+    //     if(Traits<Setup>::hysterically_debugged) {
+    //         db<Setup>(INF) << "Setup:sys_elf: " << MMU::Translation(sys_elf) << endl;
+    //         db<Setup>(INF) << "Setup:sys_elf[0]: " << MMU::Translation(sys_elf->segment_address(0)) << endl;
+    //         db<Setup>(INF) << "Setup:sys_elf[0].size: " << sys_elf->segment_size(0) << endl;
+    //     }
+    //     if(sys_elf->load_segment(0) < 0 || sys_elf->load_segment(1) < 0) {
+    //         db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
+    //         panic();
+    //     }
+    //     for(int i = 2; i < sys_elf->segments(); i++) {
+    //         if(sys_elf->load_segment(i) < 0) {
+    //             db<Setup>(ERR) << "OS data segment was corrupted during SETUP!" << endl;
+    //             panic();
+    //         }
+    //     }
+    // }
 
-    // Load APP
-    if(si->lm.has_app) {
-        db<Setup>(TRC) << "Setup::load_app()" << endl;
-        ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
-        if(Traits<Setup>::hysterically_debugged) {
-            db<Setup>(INF) << "Setup:app_elf: " << (void*)app_elf << endl;
-            db<Setup>(INF) << "Setup:app_elf: " << MMU::Translation(app_elf) << endl;
-            db<Setup>(INF) << "Setup:app_elf[0]: " << MMU::Translation(app_elf->segment_address(0)) << endl;
-            db<Setup>(INF) << "Setup:app_elf[0].size: " << app_elf->segment_size(0) << endl;
-        }
-        if(app_elf->load_segment(0) < 0) {
-            db<Setup>(ERR) << "Application code segment was corrupted during SETUP!" << endl;
-            panic();
-        }
-        for(int i = 1; i < app_elf->segments(); i++) {
-            if(app_elf->load_segment(i) < 0) {
-                db<Setup>(ERR) << "Application data segment was corrupted during SETUP!" << endl;
-                panic();
-            }
-        }
-    }
+    // // Load APP
+    // if(si->lm.has_app) {
+    //     db<Setup>(TRC) << "Setup::load_app()" << endl;
+    //     ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
+    //     if(Traits<Setup>::hysterically_debugged) {
+    //         db<Setup>(INF) << "Setup:app_elf: " << (void*)app_elf << endl;
+    //         db<Setup>(INF) << "Setup:app_elf: " << MMU::Translation(app_elf) << endl;
+    //         db<Setup>(INF) << "Setup:app_elf[0]: " << MMU::Translation(app_elf->segment_address(0)) << endl;
+    //         db<Setup>(INF) << "Setup:app_elf[0].size: " << app_elf->segment_size(0) << endl;
+    //     }
+    //     if(app_elf->load_segment(0) < 0) {
+    //         db<Setup>(ERR) << "Application code segment was corrupted during SETUP!" << endl;
+    //         panic();
+    //     }
+    //     for(int i = 1; i < app_elf->segments(); i++) {
+    //         if(app_elf->load_segment(i) < 0) {
+    //             db<Setup>(ERR) << "Application data segment was corrupted during SETUP!" << endl;
+    //             panic();
+    //         }
+    //     }
+    // }
 
-    // Load EXTRA
-    if(si->lm.has_ext) {
-        db<Setup>(TRC) << "Setup::load_extra()" << endl;
-        if(Traits<Setup>::hysterically_debugged)
-            db<Setup>(INF) << "Setup:APP_EXTRA:" << MMU::Translation(si->lm.app_extra) << endl;
-        memcpy(reinterpret_cast<void *>(si->lm.app_extra), &bi[si->bm.extras_offset], si->lm.app_extra_size);
-    }
+    // // Load EXTRA
+    // if(si->lm.has_ext) {
+    //     db<Setup>(TRC) << "Setup::load_extra()" << endl;
+    //     if(Traits<Setup>::hysterically_debugged)
+    //         db<Setup>(INF) << "Setup:APP_EXTRA:" << MMU::Translation(si->lm.app_extra) << endl;
+    //     memcpy(reinterpret_cast<void *>(si->lm.app_extra), &bi[si->bm.extras_offset], si->lm.app_extra_size);
+    // }
 }
 
 void Setup::adjust_perms()
@@ -888,43 +888,24 @@ using namespace EPOS::S;
 
 void _entry()
 {
-    // Interrupt Vector Table
-    // We use and indirection table for the ldr instructions because the offset can be to far from the PC to be encoded
-    ASM("               ldr pc, reset                                           \t\n\
-                        ldr pc, ui                                              \t\n\
-                        ldr pc, si                                              \t\n\
-                        ldr pc, pa                                              \t\n\
-                        ldr pc, da                                              \t\n\
-                        nop             // _reserved                            \t\n\
-                        ldr pc, irq                                             \t\n\
-                        ldr pc, fiq                                             \t\n\
-                                                                                \t\n\
-                        .balign 32                                              \t\n\
-        reset:          .word _reset                                            \t\n\
-        ui:             .word 0x0                                               \t\n\
-        si:             .word 0x0                                               \t\n\
-        pa:             .word 0x0                                               \t\n\
-        da:             .word 0x0                                               \t\n\
-        irq:            .word 0x0                                               \t\n\
-        fiq:            .word 0x0                                               ");
 }
 
 void _reset()
 {
     // QEMU get us here in SVC mode with interrupt disabled, but the real Raspberry Pi3 starts in hypervisor mode, so we must switch to SVC mode
-    if(!Traits<Machine>::SIMULATED) {
-        CPU::Reg cpsr = CPU::cpsr();
-        cpsr &= ~CPU::FLAG_M;           // clear mode bits
-        cpsr |= CPU::MODE_SVC;          // set supervisor flag
-        CPU::cpsrc(cpsr);               // enter supervisor mode
-        CPU::Reg address = CPU::ra();
-        CPU::elr_hyp(address);
-        CPU::r12_to_psr();
-    }
+    // if(!Traits<Machine>::SIMULATED) {
+    //     CPU::Reg cpsr = CPU::cpsr();
+    //     cpsr &= ~CPU::FLAG_M;           // clear mode bits
+    //     cpsr |= CPU::MODE_SVC;          // set supervisor flag
+    //     CPU::cpsrc(cpsr);               // enter supervisor mode
+    //     CPU::Reg address = CPU::ra();
+    //     CPU::elr_hyp(address);
+    //     CPU::r12_to_psr();
+    // }
 
     // Configure a stack for SVC mode, which will be used until the first Thread is created
-    CPU::mode(CPU::MODE_SVC); // enter SVC mode (with interrupts disabled)
-    CPU::sp(Traits<Machine>::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id());
+    // CPU::mode(CPU::MODE_SVC); // enter SVC mode (with interrupts disabled)
+    // CPU::sp(Traits<Machine>::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id());
 
     if(CPU::id() == 0) {
         // After a reset, we copy the vector table to 0x0000 to get a cleaner memory map (it is originally at 0x8000)

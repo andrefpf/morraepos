@@ -22,10 +22,18 @@ public:
         // Initialize Application's heap
         db<Init>(INF) << "Initializing application's heap: " << endl;
         if(Traits<System>::multiheap) { // heap in data segment arranged by SETUP
-            char * heap = (MMU::align_page(&_end) >= CPU::Log_Addr(Memory_Map::APP_DATA)) ? MMU::align_page(&_end) : CPU::Log_Addr(Memory_Map::APP_DATA); // ld is eliminating the data segment in some compilations, particularly for RISC-V, and placing _end in the code segment
-            if(Traits<Build>::MODE != Traits<Build>::KERNEL) // if not a kernel, then use the stack allocated by SETUP, otherwise make that part of the heap
-                heap += MMU::align_page(Traits<Application>::STACK_SIZE);
-            Application::_heap = new (&Application::_preheap[0]) Heap(heap, HEAP_SIZE);
+            // Dinamically alocated pointers
+            Segment * tmp_segm = reinterpret_cast<Segment *>(&System::_preheap[0]);
+            Heap * tmp_heap = reinterpret_cast<Heap *>(&System::_preheap[sizeof(Segment)]);
+
+            // Creates a new application segment with the appropriate flags
+            Application::_heap_segment = new (tmp_segm) Segment(HEAP_SIZE, Segment::Flags::APP);
+
+            // Attaches the new segment with a address space
+            Address_Space::Log_Addr address = Address_Space(MMU::current()).attach(Application::_heap_segment);
+
+            // Creates a heap on the new segment
+            Application::_heap = new(tmp_heap) Heap(address, Application::_heap_segment->size());
         } else
             for(unsigned int frames = MMU::allocable(); frames; frames = MMU::allocable())
                 System::_heap->free(MMU::alloc(frames), frames * sizeof(MMU::Page));

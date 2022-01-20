@@ -65,7 +65,6 @@ public:
 
     void eoi() {
         timer(IRQ_CLR) = 0;
-        /* ASM("dsb \t\n isb"); */
         while (timer(RAW_IRQ));
     }
 

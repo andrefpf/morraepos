@@ -10,8 +10,8 @@ __BEGIN_SYS
 struct System_Info
 {
 private:
-    typedef unsigned int LAddr;
-    typedef unsigned int PAddr;
+    typedef unsigned long LAddr;
+    typedef unsigned long PAddr;
     typedef unsigned int Size;
 
 public:

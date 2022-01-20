@@ -91,7 +91,10 @@ enum {
 // order before the DSB instruction.
 inline static void dsb()
 {
-    ASM("dsb");
+    #ifdef __armv8_h
+        ASM("dsb sy\t\n isb");
+    #else
+        ASM("dsb \t\n isb");
 }
 
 // An ISB instruction causes the effect of all branch predictor maintenance
