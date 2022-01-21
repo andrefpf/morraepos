@@ -85,83 +85,22 @@ protected:
     ARMv8() {};
 
 public:
-    // TODO
-    //static Log_Addr pc() { Reg r; ASM("mov %0, pc" : "=r"(r) :); return r; } // due to RISC pipelining, PC is read with a +8 (4 for thumb) offset
-    static Log_Addr pc() { return 0; } // due to RISC pipelining, PC is read with a +8 (4 for thumb) offset
 
-    static void sp(Log_Addr sp) {}
-    static Log_Addr sp() {return 0;}
-
-    // TODO ????
-    static void fr(Reg r) {}
-    static Reg fr() {return 0;}
-
-    static Log_Addr ra() {return 0;}
-
-    static void halt() {}
-
-    template<typename T>
-    static T tsl(volatile T & lock) {
-        return lock;
-    }
-
-    template<typename T>
-    static T finc(volatile T & value) {
-        return value;
-    }
-
-    template<typename T>
-    static T fdec(volatile T & value) {
-        return value;
-    }
-
-    template <typename T>
-    static T cas(volatile T & value, T compare, T replacement) {
-        return value;
-    }
-
-    // ARMv8 specifics
-    // TODO
-    static Reg r0() { return 0; }
-    static void r0(Reg r) {  }
-
-    static Reg r1() { return 0; }
-    static void r1(Reg r) {}
-
-    static Reg actlr() { return 0; }
-    static void actlr(Reg r) { }
-
-    static void dsb() { ASM("dsb sy"); }
-    static void isb() { ASM("isb"); }
-
-    static void svc() {}
-
-    static void vbar_el1(Reg r) {}
-};
-
-class ARMv8_A: public ARMv8
-{
-public:
-    static const bool thumb = false;
-
-
+    // SPSR bits
     typedef Reg Flags;
     enum {
-        // DAIF
-        FLAG_F          = 1    << 6,       // FIQ disable
-        FLAG_I          = 1    << 7,       // IRQ disable
-        FLAG_A          = 1    << 8,       // SError disable
-        FLAG_D          = 1    << 9,       // Debug disable
+        N          = 1 << 31,       // Negative
+        Z          = 1 << 30,       // Zero
+        C          = 1 << 29,       // Carry
+        V          = 1 << 28,       // Overflow
         
-        FLAG_IL         = 1    << 20,
-        FLAG_SS         = 1    << 21,
-
-        // NZCV
-        FLAG_V          = 1    << 28,
-        FLAG_C          = 1    << 29,
-        FLAG_Z          = 1    << 30,
-        FLAG_N          = 1    << 31,
-
+        SS         = 1 << 21,       // Software Step
+        IL         = 1 << 20,       // Ilegal
+        
+        D          = 1 << 9,        // Debug disable
+        A          = 1 << 8,        // SError disable
+        I          = 1 << 7,        // IRQ disable
+        F          = 1 << 6,        // FIQ disable
 
         // FLAG_M values
         MODE_USR        = 0x10,
@@ -172,36 +111,6 @@ public:
         MODE_UNDEFINED  = 0x1b,
         MODE_SYS        = 0x1f
     };
-
-
-    // // CPU Flags
-    // typedef Reg Flags;
-    // enum {
-    //     FLAG_F          = 1    << 6,       // FIQ disable
-    //     FLAG_I          = 1    << 7,       // IRQ disable
-
-    //     //TODO
-    //     FLAG_M          = 0x1f << 0,       // Processor Mode (5 bits)
-    //     FLAG_T          = 1    << 5,       // Thumb state
-    //     FLAG_A          = 1    << 8,       // Imprecise Abort disable
-    //     FLAG_E          = 1    << 9,       // Endianess (0 ->> little, 1 -> big)
-    //     FLAG_GE         = 0xf  << 16,      // SIMD Greater than or Equal (4 bits)
-    //     FLAG_J          = 1    << 24,      // Jazelle state
-    //     FLAG_Q          = 1    << 27,      // Underflow and/or DSP saturation
-    //     FLAG_V          = 1    << 28,      // Overflow
-    //     FLAG_C          = 1    << 29,      // Carry
-    //     FLAG_Z          = 1    << 30,      // Zero
-    //     FLAG_N          = 1    << 31,      // Negative
-
-    //     // FLAG_M values
-    //     MODE_USR        = 0x10,
-    //     MODE_FIQ        = 0x11,
-    //     MODE_IRQ        = 0x12,
-    //     MODE_SVC        = 0x13,
-    //     MODE_ABORT      = 0x17,
-    //     MODE_UNDEFINED  = 0x1b,
-    //     MODE_SYS        = 0x1f
-    // };
 
     // Exceptions
     typedef Reg Exception_Id;
@@ -216,12 +125,7 @@ public:
         EXC_FIQ                     = 8
     };
 
-    enum {
-        CLI_DOMAIN = 0x55555555, // 0b01 - Client, all memory domains check for memory access permission
-        MNG_DOMAIN = 0xFFFFFFFF  // 0b11 - Manager, memory access permissions are not checked
-    };
-
-    // SCTLR bits
+    // SCTLR bits - TODO
     enum {
         MMU_ENABLE  = 1 << 0,  // MMU enable
         DCACHE      = 1 << 2,  // Data cache enable
@@ -230,131 +134,137 @@ public:
         // AFE         = 1 << 29  // Access Flag enable //TODO
     };
 
-    // ACTLR bits
+    // ACTLR bits - TODO
     enum {
         DCACHE_PREFE = 1 << 2, // DCache prefetch Enabled
         SMP          = 1 << 6 // SMP bit
     };
 
-    // EL
-    enum {
-        EL0 = 0,
-        EL1 = 1,
-        EL2 = 2,
-        EL3 = 3
-    };
 
-    // HCR_EL2
-    enum {
-        HCR_EL2_RW = 1 << 31,
-        HCR_EL2_SWIO = 1 << 1,
-    };
+public: // SPECIAL REGISTERS
 
-    // TCR_EL1
-    enum {
-        TCR_VADDR_BITS = 42l,
-        TCR_PADDR_BITS = 42l,
+    static Reg zr() {return 0;}
 
-        TCR_T0SZ = ((64 - (TCR_VADDR_BITS)) << 0),
-        TCR_T1SZ = ((64 - (TCR_VADDR_BITS)) << 16),
-        TCR_TxSZ = (TCR_T0SZ | TCR_T1SZ),
+    static Log_Addr pc() {Reg r; ASM("mrs %0, pc" : "=r"(r)); return r; }   // due to RISC pipelining, PC is read with a +8 (4 for thumb) offset
 
-        TCR_IRGN0_WBWA = 1ul << 8,
-        TCR_ORGN0_WBWA = 1ul << 10,
-        TCR_IRGN1_WBWA = 1ul << 24,
-        TCR_ORGN1_WBWA = 1ul << 26,
+    // Stack Pointer Registers
+    static Log_Addr sp() { Reg r; ASM("mov %0, sp" : "=r"(r) :); return r; }
+    static void sp(Log_Addr sp) { ASM("mov sp, %0" : : "r"(Reg(sp))); ASM("isb"); }
 
-        TCR_IRGN_WBWA = (TCR_IRGN0_WBWA | TCR_IRGN1_WBWA),
-        TCR_ORGN_WBWA = (TCR_ORGN0_WBWA | TCR_ORGN1_WBWA),
-        TCR_CACHE_FLAGS = (TCR_IRGN_WBWA | TCR_ORGN_WBWA),
+    static Reg sp_el0() {Reg r; ASM("mrs %0, sp_el0" : "=r"(r)); return r; }
+    static void sp_el0(Reg r) { ASM("msr sp_el0, %0" : : "r"(r) :);}
 
-        TCR_SH0_INNER = 3ul << 12,
-        TCR_SH1_INNER = 3ul << 28,
+    static Reg sp_el1() {Reg r; ASM("mrs %0, sp_el1" : "=r"(r)); return r; }
+    static void sp_el1(Reg r) { ASM("msr sp_el1, %0" : : "r"(r) :);}
 
-        TCR_SHARED = (TCR_SH0_INNER | TCR_SH1_INNER),
+    static Reg sp_el2() {Reg r; ASM("mrs %0, sp_el2" : "=r"(r)); return r; }
+    static void sp_el2(Reg r) { ASM("msr sp_el2, %0" : : "r"(r) :);}
 
-        TCR_TG0_64K = (1UL << 14),
-        TCR_TG1_64K = (3UL << 30),
-        TCR_TG_FLAGS = (TCR_TG0_64K | TCR_TG1_64K),
+    static Reg sp_el3() {Reg r; ASM("mrs %0, sp_el3" : "=r"(r)); return r; }
+    static void sp_el3(Reg r) { ASM("msr sp_el3, %0" : : "r"(r) :);}
+    
+    // Saved Processor State Registers
+    static Reg spsr_el1() {Reg r; ASM("mrs %0, spsr_el1" : "=r"(r)); return r; }
+    static void spsr_el1(Reg r) { ASM("msr spsr_el1, %0" : : "r"(r) :);}
 
-        TCR_ASID16 = (0UL << 36),
-        TCR_TBI0 = (1UL << 37),
-        TCR_EPD1 = (1 << 23),
-        TCR_IPS = (3UL << 32),
+    static Reg spsr_el2() {Reg r; ASM("mrs %0, spsr_el2" : "=r"(r)); return r; }
+    static void spsr_el2(Reg r) { ASM("msr spsr_el2, %0" : : "r"(r) :);}
 
-        TCR_VALUE = (TCR_TxSZ | TCR_CACHE_FLAGS | TCR_SHARED | TCR_TG_FLAGS | TCR_ASID16 | TCR_TBI0 | TCR_EPD1 | TCR_IPS),
+    static Reg spsr_el3() {Reg r; ASM("mrs %0, spsr_el3" : "=r"(r)); return r; }
+    static void spsr_el3(Reg r) { ASM("msr spsr_el3, %0" : : "r"(r) :);}
 
-    };
+    static Reg daif() {Reg r; ASM("mrs %0, daif" : "=r"(r)); return r; }
+    static void daif(Reg r) {}
 
-    enum {
-        //MAIR
-        MAIR_DEVICE_NGNRNE	= 0,
-	    MAIR_DEVICE_NGNRE	= 1,
-        MAIR_DEVICE_GRE		= 2,
-	    MAIR_NORMAL_NC		= 3,
-	    MAIR_NORMAL			= 4,
-
-        MAIR_VALUE = ((0x0 << (MAIR_DEVICE_NGNRNE * 8)) | (0x04 << (MAIR_DEVICE_NGNRE * 8)) | (0x0c << (MAIR_DEVICE_GRE * 8)) |	(0x44 << (MAIR_NORMAL_NC * 8)) |(0xffLL << (MAIR_NORMAL * 8)))
-    };
-
-    // CPU Context
-    class Context: public ARMv8::Context
-    {
-    public:
-        Context() {}
-        Context(Log_Addr entry, Log_Addr exit, Log_Addr usp): ARMv8::Context(usp, exit | thumb, multitask ? (usp ? MODE_USR : MODE_SVC) : MODE_SVC, exit | thumb, entry | thumb) {}
-    };
-
-protected:
-    ARMv8_A() {};
-
-public:
-    // TODO
-    static Flags flags() { return cpsr(); }
-    static void flags(Flags flags) { cpsr(flags); }
-
-    //DONE
-    static Reg daif() { Reg r; ASM("mrs %0, daif" : "=r"(r)); return r; }
-    static void daif(Reg r) { ASM("msr daif, %0" : : "r"(r) :);}
-
-    // DONE
-    static Reg nzcv() {Reg r; ASM("mrs %0, nzcv" : "=r"(r)); return r;}
+    static Reg nzcv() {Reg r; ASM("mrs %0, nzcv" : "=r"(r)); return r; }
     static void nzcv(Reg r) { ASM("msr nzcv, %0" : : "r"(r) :);}
 
-    // DONE
-    static Reg elr_el1() {Reg r; ASM("mrs %0, elr_el1" : "=r"(r)); return r;}
+    // Exception Link Registers
+    static Reg elr_el1() {Reg r; ASM("mrs %0, elr_el1" : "=r"(r)); return r; }
     static void elr_el1(Reg r) { ASM("msr elr_el1, %0" : : "r"(r) :);}
 
-    static Reg elr_el2() {Reg r; ASM("mrs %0, elr_el2" : "=r"(r)); return r;}
+    static Reg elr_el2() {Reg r; ASM("mrs %0, elr_el2" : "=r"(r)); return r; }
     static void elr_el2(Reg r) { ASM("msr elr_el2, %0" : : "r"(r) :);}
 
-    static Reg elr_el3() {Reg r; ASM("mrs %0, elr_el3" : "=r"(r)); return r;}
+    static Reg elr_el3() {Reg r; ASM("mrs %0, elr_el3" : "=r"(r)); return r; }
     static void elr_el3(Reg r) { ASM("msr elr_el3, %0" : : "r"(r) :);}
 
-    // DONE
-    // esse é igual o sctlr_el1 mas não tirei pra não quebrar nada 
-    static Reg sctlr() { Reg r; ASM("mrs %0, sctlr_el1" : "=r"(r)); return r; }
-    static void sctlr(Reg r) { ASM("msr sctlr_el1, %0" : : "r"(r) :); }
+    // Translation Table Base Registers 0 
+    static Reg ttbr0_el1() {Reg r; ASM("mrs %0, ttbr0_el1" : "=r"(r)); return r; }
+    static void ttbr0_el1(Reg r) { ASM("msr ttbr0_el1, %0" : : "r"(r) :);}
 
-    // DONE
-    static Reg sctlr_el1() { Reg r; ASM("mrs %0, sctlr_el1" : "=r"(r)); return r; }
-    static void sctlr_el1(Reg r) { ASM("msr sctlr_el1, %0" : : "r"(r) :); }
+    static Reg ttbr0_el2() {Reg r; ASM("mrs %0, ttbr0_el2" : "=r"(r)); return r; }
+    static void ttbr0_el2(Reg r) { ASM("msr ttbr0_el2, %0" : : "r"(r) :);}
 
-    static Reg sctlr_el2() { Reg r; ASM("mrs %0, sctlr_el2" : "=r"(r)); return r; }
-    static void sctlr_el2(Reg r) { ASM("msr sctlr_el2, %0" : : "r"(r) :); }
+    static Reg ttbr0_el3() {Reg r; ASM("mrs %0, ttbr0_el3" : "=r"(r)); return r; }
+    static void ttbr0_el3(Reg r) { ASM("msr ttbr0_el3, %0" : : "r"(r) :);}
 
-    static Reg sctlr_el3() { Reg r; ASM("mrs %0, sctlr_el3" : "=r"(r)); return r; }
-    static void sctlr_el3(Reg r) { ASM("msr sctlr_el3, %0" : : "r"(r) :); }
+    // Translation Table Base Registers 1
+    static Reg ttbr1_el1() {Reg r; ASM("mrs %0, ttbr1_el1" : "=r"(r)); return r; }
+    static void ttbr1_el1(Reg r) { ASM("msr ttbr1_el1, %0" : : "r"(r) :);}
+
+    static Reg ttbr1_el2() {Reg r; ASM("mrs %0, ttbr1_el2" : "=r"(r)); return r; }
+    static void ttbr1_el2(Reg r) { ASM("msr ttbr1_el2, %0" : : "r"(r) :);}
+
+    static Reg ttbr1_el3() {Reg r; ASM("mrs %0, ttbr1_el3" : "=r"(r)); return r; }
+    static void ttbr1_el3(Reg r) { ASM("msr ttbr1_el3, %0" : : "r"(r) :);}
+
+    // Current Cache Size Id Registers
+    static Reg ccsidr_el1() {Reg r; ASM("mrs %0, ccsidr_el1" : "=r"(r)); return r; }
+    static void ccsidr_el1(Reg r) { ASM("msr ccsidr_el1, %0" : : "r"(r) :);}
+
+    // Cache Size Selection Registers
+    static Reg csselr_el1() {Reg r; ASM("mrs %0, csselr_el1" : "=r"(r)); return r; }
+    static void csselr_el1(Reg r) { ASM("msr csselr_el1, %0" : : "r"(r) :);}
+
+    // Vector Based Address Registers
+    static Reg vbar_el1() {Reg r; ASM("mrs %0, vbar_el1" : "=r"(r)); return r; }
+    static void vbar_el1(Reg r) { ASM("msr vbar_el1, %0" : : "r"(r) :);}
+
+    static Reg vbar_el2() {Reg r; ASM("mrs %0, vbar_el2" : "=r"(r)); return r; }
+    static void vbar_el2(Reg r) { ASM("msr vbar_el2, %0" : : "r"(r) :);}
+
+    static Reg vbar_el3() {Reg r; ASM("mrs %0, vbar_el3" : "=r"(r)); return r; }
+    static void vbar_el3(Reg r) { ASM("msr vbar_el3, %0" : : "r"(r) :);}
+
+    // Auxiliary Control Registers
+    static Reg actlr_el1() {Reg r; ASM("mrs %0, actlr_el1" : "=r"(r)); return r; }
+    static void actlr_el1(Reg r) { ASM("msr actlr_el1, %0" : : "r"(r) :);}
+
+    static Reg actlr_el2() {Reg r; ASM("mrs %0, actlr_el2" : "=r"(r)); return r; }
+    static void actlr_el2(Reg r) { ASM("msr actlr_el2, %0" : : "r"(r) :);}
+
+    static Reg actlr_el3() {Reg r; ASM("mrs %0, actlr_el3" : "=r"(r)); return r; }
+    static void actlr_el3(Reg r) { ASM("msr actlr_el3, %0" : : "r"(r) :);}
 
 
-    //DONE
+    // System Control Registers
+    static Reg sctlr_el0() {Reg r; ASM("mrs %0, sctlr_el0" : "=r"(r)); return r; }
+    static void sctlr_el0(Reg r) { ASM("msr sctlr_el0, %0" : : "r"(r) :);}
+
+    static Reg sctlr_el1() {Reg r; ASM("mrs %0, sctlr_el1" : "=r"(r)); return r; }
+    static void sctlr_el1(Reg r) { ASM("msr sctlr_el1, %0" : : "r"(r) :);}
+
+    static Reg sctlr_el2() {Reg r; ASM("mrs %0, sctlr_el2" : "=r"(r)); return r; }
+    static void sctlr_el2(Reg r) { ASM("msr sctlr_el2, %0" : : "r"(r) :);}
+
+    static Reg sctlr_el3() {Reg r; ASM("mrs %0, sctlr_el3" : "=r"(r)); return r; }
+    static void sctlr_el3(Reg r) { ASM("msr sctlr_el3, %0" : : "r"(r) :);}
+
+
+public:
+    static void dsb() { ASM("dsb sy"); }
+    static void isb() { ASM("isb"); }
+
+    static Reg pd() { return ttbr0_el1(); }
+    static void pd(Reg r) {  ttbr0_el1(r); }
+
     static unsigned int id() {
         Reg id;
         ASM("mrs %0, mpidr_el1" : "=r"(id) : : );
         return id & 0x3;
     }
 
-    //DONE
     static unsigned int el() {
         Reg el;
         ASM("mrs %0, CurrentEL" : "=r"(el) : : );
@@ -367,83 +277,17 @@ public:
         if(Traits<Build>::MODEL == Traits<Build>::Raspberry_Pi3) {
             return Traits<Build>::CPUS;
         } else {
-            //TODO
             return 0;
         }
     }
 
-    //DONE
-    static void int_enable() {  flags(flags() & ~(FLAG_F | FLAG_I)); }
-    static void int_disable() { flags(flags() | (FLAG_F | FLAG_I)); }
+    static void int_enable() { }
+    static void int_disable() { }
 
-    //DONE
-    static bool int_enabled() { return !int_disabled(); }
-    static bool int_disabled() { return flags() & (FLAG_F | FLAG_I); }
+    static bool int_enabled() { return 0; }
+    static bool int_disabled() { return 0; }
 
     static void smp_barrier(unsigned long cores = Traits<Build>::CPUS) { CPU_Common::smp_barrier<&finc>(cores, id()); }
-
-    static void fpu_save() {  }
-    static void fpu_restore() { }
-
-    // ARMv8-A specifics
-    // TODO: REMOVE ARMV7 REGISTERS
-    static Reg cpsr() { return 0; }
-    static void cpsr(Reg r) {  }
-
-    static Reg cpsrc() { return 0; }
-    static void cpsrc(Reg r) {}
-
-    static void psr_to_r12() {}
-    static void r12_to_psr() { }
-
-    static void save_regs(bool ret = false) {
-        // if(ret)
-        //     ASM("stmfd sp!, {r0-r3, r12, lr, pc}");
-        // else
-        //     ASM("stmfd sp!, {r0-r3, r12, lr}");
-    }
-
-    static void restore_regs(bool ret = false) {
-    }
-
-    static void mode(unsigned int m) { }
-
-    static void svc_enter(unsigned int from, bool ret = true) {
-    }
-
-    static void svc_leave() {
-    }
-
-    static void svc_stay() { restore_regs(false); }
-
-    static Reg elr_hyp() { return 0; }
-    static void elr_hyp(Reg r) { }
-
-    static void ldmia() {}
-    static void stmia() { }
-
-    // CP15 operations
-    //TODO
-    static Reg ttbr0() {return 0;}
-    static void ttbr0(Reg r) {}
-
-    static Reg ttbr1() {return 0;}
-    static void ttbr1(Reg r) {}
-
-    static Reg ttbcr() { return 0; }
-    static void ttbcr(Reg r) { }
-
-    static Reg dacr() { return 0; }
-    static void dacr(Reg r) { }
-
-    static Reg tcr() {return 0;}
-    static void tcr(Reg r) {}
-
-    static Reg mair() {return 0;}
-    static void mair(Reg r) {}
-
-    static Reg pd() { return ttbr0(); }
-    static void pd(Reg r) {  ttbr0(r); }
 
     static void flush_tlb() {  } // TLBIALL - invalidate entire unifed TLB
     static void flush_tlb(Reg r) { }
@@ -489,17 +333,47 @@ public:
         */
     }
 
-    static void enable_fpu() {
+    static void fpu_save() { }
+    static void fpu_restore() { }
+    static void enable_fpu() { }
+
+    // TODO ????
+    static void fr(Reg r) {}
+    static Reg fr() {return 0;}
+
+    static Log_Addr ra() {return 0;}
+
+    static void halt() {}
+
+    template<typename T>
+    static T tsl(volatile T & lock) {
+        return lock;
+    }
+
+    template<typename T>
+    static T finc(volatile T & value) {
+        return value;
+    }
+
+    template<typename T>
+    static T fdec(volatile T & value) {
+        return value;
+    }
+
+    template <typename T>
+    static T cas(volatile T & value, T compare, T replacement) {
+        return value;
     }
 
 };
 
-class CPU: public ARMv8_A
+
+class CPU: public ARMv8
 {
     friend class Init_System;
 
 private:
-    typedef ARMv8_A Base;
+    typedef ARMv8 Base;
 
 public:
     // CPU Native Data Types
@@ -516,7 +390,9 @@ public:
     {
     public:
         Context() {}
-        Context(Log_Addr entry, Log_Addr exit, Log_Addr usp): Base::Context(entry, exit, usp) {}
+        Context(Log_Addr entry, Log_Addr exit, Log_Addr usp) {
+            Base::Context(usp, exit, multitask ? (usp ? MODE_USR : MODE_SVC) : MODE_SVC, exit, entry);
+        }
 
         void save() volatile ;
         void load() const volatile;
@@ -610,6 +486,9 @@ public:
     // In ARMv8, the main thread of each task gets parameters over registers, not the stack, and they are initialized by init_stack.
     template<typename ... Tn>
     static Log_Addr init_user_stack(Log_Addr usp, void (* exit)(), Tn ... an) { return usp; }
+
+    static Reg sctlr() { return Base::sctlr_el1(); }
+    static void sctlr(Reg r) { Base::sctlr_el1(r); }
 
     static void syscall(void * message);
     static void syscalled();

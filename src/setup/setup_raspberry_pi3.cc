@@ -910,16 +910,16 @@ void _reset()
     if(CPU::id() == 0) {
         // After a reset, we copy the vector table to 0x0000 to get a cleaner memory map (it is originally at 0x8000)
         // An alternative would be to set vbar address via mrc p15, 0, r1, c12, c0, 0
-        CPU::r0(reinterpret_cast<CPU::Reg>(&_entry)); // load r0 with the source pointer
-        CPU::r1(Memory_Map::VECTOR_TABLE); // load r1 with the destination pointer
+        // CPU::r0(reinterpret_cast<CPU::Reg>(&_entry)); // load r0 with the source pointer
+        // CPU::r1(Memory_Map::VECTOR_TABLE); // load r1 with the destination pointer
 
         // Copy the first 32 bytes
-        CPU::ldmia(); // load multiple registers from the memory pointed by r0 and auto-increment it accordingly
-        CPU::stmia(); // store multiple registers to the memory pointed by r1 and auto-increment it accordingly
+        // CPU::ldmia(); // load multiple registers from the memory pointed by r0 and auto-increment it accordingly
+        // CPU::stmia(); // store multiple registers to the memory pointed by r1 and auto-increment it accordingly
 
         // Repeat to copy the subsequent 32 bytes
-        CPU::ldmia();
-        CPU::stmia();
+        // CPU::ldmia();
+        // CPU::stmia();
 
         // Clear the BSS (SETUP was linked to CRT0, but entry point didn't go through BSS clear)
         _bss_clear();
@@ -940,7 +940,7 @@ void _setup()
     CPU::flush_caches();
     CPU::flush_branch_predictors();
     CPU::flush_tlb();
-    CPU::actlr(CPU::actlr() | CPU::DCACHE_PREFE); // enable Dside prefetch
+    // CPU::actlr(CPU::actlr() | CPU::DCACHE_PREFE); // enable Dside prefetch
     
     Setup setup;
 }
