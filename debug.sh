@@ -7,10 +7,11 @@ konsole -e aarch64-linux-gnu-gdb -ex "target remote:1236" -ex "set confirm off" 
 -ex "add-symbol-file ./img/setup_raspberry_pi3" \
 -ex "add-symbol-file ./img/system_raspberry_pi3" \
 -ex "add-symbol-file ./img/init_raspberry_pi3" \
+-ex "b _entry()" \
 -ex "b EPOS::S::ARMv8_MMU::free()" \
--ex "c" \
 -ex "layout split"'
 
 
+# -ex "c" \
 #-ex "b *0x0080000" \
 #EPOS::S::Setup::Setup

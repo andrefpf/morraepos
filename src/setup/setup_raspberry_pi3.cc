@@ -13,6 +13,7 @@ extern "C" {
     void _entry() __attribute__ ((used, section(".init")));
     void _reset(); // so it can be safely reached from the vector table
     void _setup(); // just to create a Setup object
+    void _vector_table() __attribute__ ((used)); // 
 
     // LD eliminates this variable while performing garbage collection, so --undefined=__boot_time_system_info must be present while linking
     char __boot_time_system_info[sizeof(EPOS::S::System_Info)] = "System_Info placeholder. Actual System_Info will be added by mkbi!";
@@ -539,6 +540,7 @@ void Setup::setup_sys_pt()
     db<Setup>(INF) << "SYS_CODE PT = " << MMU::directory(SYS_CODE - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_CODE) << ",size=" << si->lm.sys_code_size << endl;
     
     // SYSTEM data
+    // TODO : mexer em algo aqui
     setup_pt(reinterpret_cast<PT_Entry *>(&sys_pt[MMU::directory(SYS_DATA - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_DATA)]), si->pmm.sys_data, MMU::pages(si->lm.sys_data_size), MMU::page_tables(MMU::pages(si->lm.sys_data_size)), Flags::SYS, true);
     db<Setup>(INF) << "SYS_DATA PT = " << MMU::directory(SYS_DATA - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_DATA) << ",size=" << si->lm.sys_data_size << endl;
 
@@ -888,42 +890,28 @@ using namespace EPOS::S;
 
 void _entry()
 {
+    // Configure a stack and goto _reset
+    CPU::sp(Traits<Machine>::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id());
+    ASM("b _reset");
 }
 
 void _reset()
 {
-    // QEMU get us here in SVC mode with interrupt disabled, but the real Raspberry Pi3 starts in hypervisor mode, so we must switch to SVC mode
-    // if(!Traits<Machine>::SIMULATED) {
-    //     CPU::Reg cpsr = CPU::cpsr();
-    //     cpsr &= ~CPU::FLAG_M;           // clear mode bits
-    //     cpsr |= CPU::MODE_SVC;          // set supervisor flag
-    //     CPU::cpsrc(cpsr);               // enter supervisor mode
-    //     CPU::Reg address = CPU::ra();
-    //     CPU::elr_hyp(address);
-    //     CPU::r12_to_psr();
-    // }
+    // ARMV8 starts in Exception level 2
+    if (CPU::el() == 2) {
+        CPU::hcr_el2((1l << 31) | (1l << 1));   // configure the hypervisor
 
-    // Configure a stack for SVC mode, which will be used until the first Thread is created
-    // CPU::mode(CPU::MODE_SVC); // enter SVC mode (with interrupts disabled)
-    // CPU::sp(Traits<Machine>::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id());
+        // go to _entry as EL1
+        CPU::spsr_el2(0x3c4);
+        CPU::elr_el2(reinterpret_cast<CPU::Reg> (&_entry));
+        CPU::eret();
+    }
 
     if(CPU::id() == 0) {
-        // After a reset, we copy the vector table to 0x0000 to get a cleaner memory map (it is originally at 0x8000)
-        // An alternative would be to set vbar address via mrc p15, 0, r1, c12, c0, 0
-        // CPU::r0(reinterpret_cast<CPU::Reg>(&_entry)); // load r0 with the source pointer
-        // CPU::r1(Memory_Map::VECTOR_TABLE); // load r1 with the destination pointer
-
-        // Copy the first 32 bytes
-        // CPU::ldmia(); // load multiple registers from the memory pointed by r0 and auto-increment it accordingly
-        // CPU::stmia(); // store multiple registers to the memory pointed by r1 and auto-increment it accordingly
-
-        // Repeat to copy the subsequent 32 bytes
-        // CPU::ldmia();
-        // CPU::stmia();
-
-        // Clear the BSS (SETUP was linked to CRT0, but entry point didn't go through BSS clear)
+        
+        CPU::vbar_el1(reinterpret_cast<CPU::Reg>(&_vector_table));  // setup the vector table
         _bss_clear();
-    } else {
+    }  else {
         BCM_Mailbox * mbox = reinterpret_cast<BCM_Mailbox *>(Memory_Map::MBOX_CTRL_BASE);
         mbox->eoi(0);
         mbox->enable();
@@ -934,13 +922,53 @@ void _reset()
 
 void _setup()
 {
-    CPU::int_disable(); // interrupts will be re-enabled at init_end
+    // CPU::int_disable(); // interrupts will be re-enabled at init_end
 
-    CPU::enable_fpu();
-    CPU::flush_caches();
-    CPU::flush_branch_predictors();
-    CPU::flush_tlb();
+    // CPU::enable_fpu();
+    // CPU::flush_caches();
+    // CPU::flush_branch_predictors();
+    // CPU::flush_tlb();
     // CPU::actlr(CPU::actlr() | CPU::DCACHE_PREFE); // enable Dside prefetch
     
     Setup setup;
+}
+
+void _vector_table() {
+    ASM(
+        "_vector_table:         \n"
+        ".balign 0x80           \n"
+        "mov x0, x0             \n"
+        ".balign 0x80           \n"
+        "mov x1, x0             \n"
+        ".balign 0x80           \n"
+        "mov x2, x0             \n"
+        ".balign 0x80           \n"
+        "mov x3, x0             \n"
+
+        ".balign 0x80           \n"
+        "mov x4, x0             \n"
+        ".balign 0x80           \n"
+        "mov x5, x0             \n"
+        ".balign 0x80           \n"
+        "mov x6, x0             \n"
+        ".balign 0x80           \n"
+        "mov x7, x0             \n"
+
+        ".balign 0x80           \n"
+        "mov x8, x0             \n"
+        ".balign 0x80           \n"
+        "mov x9, x0             \n"
+        ".balign 0x80           \n"
+        "mov x10, x0            \n"
+        ".balign 0x80           \n"
+        "mov x11, x0            \n"
+
+        ".balign 0x80           \n"
+        "mov x12, x0            \n"
+        ".balign 0x80           \n"
+        "mov x13, x0            \n"
+        ".balign 0x80           \n"
+        "mov x14, x0            \n"
+        ".balign 0x80           \n"
+        "mov x15, x0            \n");
 }

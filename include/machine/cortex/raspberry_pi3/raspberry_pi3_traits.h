@@ -34,8 +34,8 @@ public:
     // Physical Memory at Boot
     static const unsigned int BOOT              = NOT_USED;
     static const unsigned int BOOT_STACK        = 0x0007fffc;   // RAM_BASE + 512KB - 4 (will be used as the stack pointer, not the base)
-    static const unsigned int IMAGE             = 0x00100000;
-    static const unsigned int RESET             = SIMULATED ? 0x00010000 : 0x00008000;
+    static const unsigned int IMAGE             = 0x00800000;
+    static const unsigned int RESET             = 0x00080000;
     static const unsigned int SETUP             = library_mode ? NOT_USED : RESET;
 
     // Logical Memory Map

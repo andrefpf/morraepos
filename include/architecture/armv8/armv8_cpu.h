@@ -89,18 +89,18 @@ public:
     // SPSR bits
     typedef Reg Flags;
     enum {
-        N          = 1 << 31,       // Negative
-        Z          = 1 << 30,       // Zero
-        C          = 1 << 29,       // Carry
-        V          = 1 << 28,       // Overflow
+        FLAG_N          = 1 << 31,       // Negative
+        FLAG_Z          = 1 << 30,       // Zero
+        FLAG_C          = 1 << 29,       // Carry
+        FLAG_V          = 1 << 28,       // Overflow
         
-        SS         = 1 << 21,       // Software Step
-        IL         = 1 << 20,       // Ilegal
+        FLAG_SS         = 1 << 21,       // Software Step
+        FLAG_IL         = 1 << 20,       // Ilegal
         
-        D          = 1 << 9,        // Debug disable
-        A          = 1 << 8,        // SError disable
-        I          = 1 << 7,        // IRQ disable
-        F          = 1 << 6,        // FIQ disable
+        FLAG_D          = 1 << 9,        // Debug disable
+        FLAG_A          = 1 << 8,        // SError disable
+        FLAG_I          = 1 << 7,        // IRQ disable
+        FLAG_F          = 1 << 6,        // FIQ disable
 
         // FLAG_M values
         MODE_USR        = 0x10,
@@ -237,7 +237,6 @@ public: // SPECIAL REGISTERS
     static Reg actlr_el3() {Reg r; ASM("mrs %0, actlr_el3" : "=r"(r)); return r; }
     static void actlr_el3(Reg r) { ASM("msr actlr_el3, %0" : : "r"(r) :);}
 
-
     // System Control Registers
     static Reg sctlr_el0() {Reg r; ASM("mrs %0, sctlr_el0" : "=r"(r)); return r; }
     static void sctlr_el0(Reg r) { ASM("msr sctlr_el0, %0" : : "r"(r) :);}
@@ -251,10 +250,17 @@ public: // SPECIAL REGISTERS
     static Reg sctlr_el3() {Reg r; ASM("mrs %0, sctlr_el3" : "=r"(r)); return r; }
     static void sctlr_el3(Reg r) { ASM("msr sctlr_el3, %0" : : "r"(r) :);}
 
+    // Hypervisor Configuration Registers
+    static Reg hcr_el2() {Reg r; ASM("mrs %0, hcr_el2" : "=r"(r)); return r; }
+    static void hcr_el2(Reg r) { ASM("msr hcr_el2, %0" : : "r"(r) :);}
+
 
 public:
     static void dsb() { ASM("dsb sy"); }
+
     static void isb() { ASM("isb"); }
+
+    static void eret() { ASM("eret"); }
 
     static Reg pd() { return ttbr0_el1(); }
     static void pd(Reg r) {  ttbr0_el1(r); }

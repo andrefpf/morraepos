@@ -28,65 +28,73 @@ public:
     class Page_Flags
     {
     public:
-        // Page Table entry flags
+        // VMSAv8-64 level 1 and level 2 descriptor formats, 64KB granule with ARMv8.2-LPA
+
+        // Block Flags
         enum {
-            XN   = 1 << 0,  // not executable
-            PTE  = 1 << 1,  // sets entry as Small Page == Page Table Entry
-            // Access Permission bits, assuming SCTLR.AFE = 0
-            AP0  = 1 << 4,  
-            AP1  = 1 << 5,
-            AP2  = 1 << 9,
-            RW   = AP0,     // Read Write SYS
-            RO   = AP2,     // Read only SYS
-            USR  = (AP1 | AP0),
-            // TEX[2:0], C, B, S --> set Shareability/Cacheability
-            B    = 1 << 2,  // Bufferable
-            C    = 1 << 3,  // Cacheable
-            TEX0 = 1 << 6,
-            TEX1 = 1 << 7,
-            TEX2 = 1 << 8,
-            S    = 1 << 10, // Shareable
-            nG   = 1 << 11, // Not Global
+            UXN                     = 1l     << 54,      // Unprivileged execute never
+            PNX                     = 1l     << 53,      // Privileged execute never
+            CTG                     = 1l     << 52,      // Contiguous 
+            DBM                     = 1l     << 51,      // Dirty Bit Modifier
+            NG                      = 1l     << 11,      // Not Global
+            AF                      = 1l     << 10,      // Access Flag
+            SH0                     = 2l     <<  8,      // Outer shareable
+            SHI                     = 3l     <<  8,      // Inner shareable
+            AP1                     = 1l     <<  7,      // Forbid Writes 
+            AP0                     = 1l     <<  6,      // Forbid EL0 access
+            NS                      = 1l     <<  5,      // Non secure
 
-            SDEV = B,       // Shareable Device Memory, should not be used along with CT or CWT
-            CD   = TEX2,    // Cache Disable
-            CWT  = (TEX2 | TEX1 | TEX0 | C | B),  // Cacheable Write Through
-
-            // Page Table flags
-            APP  = (nG | S | AP1 | AP0 | CWT | PTE),        // S, RWX  All, Normal WT
-            APPD = (nG | S | AP1 | AP0 | CWT | XN  | PTE),  // S, RWnX All, Normal WT
-            APPC = (nG | S | AP2 | AP1 | AP0 | CWT | PTE),  // S, RnWX All, Normal WT
-            SYS  = (nG | S | AP0 | CWT | PTE),              // S, RWX  SYS, Normal WT
-            IO   = (nG | AP0 | SDEV | PTE),                 // Device Memory = Shareable, RWX, SYS
-            DMA  = (nG | AP0 | SDEV | PTE),                 // Device Memory no cacheable / Old Peripheral = Shareable, RWX, B ?
-            PT_MASK = (1 << 12) - 1
+            IS_BLOCK                = 1l,
         };
 
-        // Short-descriptor format | Page Directory entry flags
+        // Table Flags
         enum {
-            PDE  = 1 << 0,         // Set descriptor as Page Directory entry
-            NS   = 1 << 3,         // NonSecure Memory Region
-            PD_FLAGS = (NS | PDE),
-            PD_MASK = (1 << 10) -1
+            NS_TABLE                = 1l     << 63,      // Non Secure Table 
+            AP1_TABLE               = 1l     << 62,      // Forbid Writes in subsequent levels 
+            AP0_TABLE               = 1l     << 61,      // Forbid EL0 access in subsequent levels
+            UNX_TABLE               = 1l     << 60,      // Unprivileged execute never
+            PNX_TABLE               = 1l     << 59,      // Privileged execute never
+
+            IS_TABLE                = 3l,
+        };
+
+        enum {
+            APP     = (IS_TABLE | NG | SHI | AF | AP0),
+            APPD    = (IS_TABLE | NG | SHI | AF | AP0 | PNX | UXN),
+            APPC    = (IS_TABLE | NG | SHI | AF | AP0 | AP1),
+            SYS     = (IS_TABLE | NG | SHI | AF ),
+            IO      = (IS_TABLE | NG | AF  ),
+            DMA     = (IS_TABLE | NG | AF  ),
+        };
+
+        enum {
+            PT_MASK = 0xFFFF00000000FFFF,
+            PD_MASK = PT_MASK,
+        };
+
+        // Depois o tio mexe aqui
+        enum {
+            CWT     = 0,
+            CD      = 0,
         };
 
     public:
         Page_Flags() {}
-        Page_Flags(unsigned int f) : _flags(f) {}
-        Page_Flags(Flags f) : _flags(nG |
-                                    ((f & Flags::RW)  ? RW   : RO) |
-                                    ((f & Flags::USR) ? USR  : 0) |
-                                    ((f & Flags::CWT) ? CWT  : 0) |
-                                    ((f & Flags::CD)  ? CD   : 0) |
-                                    ((f & Flags::EX)  ? 0    : XN) |
-                                    ((f & Flags::IO)  ? SDEV : S) ) {}
+        Page_Flags(CPU::Reg64 f) : _flags(f) {}
+        Page_Flags(Flags f) : _flags(NG |
+                                    ((f & Flags::RW)  ? 0    : AP1          ) |
+                                    ((f & Flags::USR) ? AP0  : 0            ) |
+                                    ((f & Flags::CWT) ? 0    : 0            ) |
+                                    ((f & Flags::CD)  ? 0    : 0            ) |
+                                    ((f & Flags::EX)  ? 0    : (UXN | PNX)  ) |
+                                    ((f & Flags::IO)  ? 0    : SHI          ) ) {}
 
-        operator unsigned int() const { return _flags; }
+        operator unsigned long() const { return _flags; }
 
         friend Debug & operator<<(Debug & db, const Page_Flags & f) { db << hex << f._flags; return db; }
 
     private:
-        unsigned int _flags;
+        CPU::Reg64 _flags;
     };
 
     // Page_Table
@@ -235,6 +243,7 @@ public:
         Directory() : _free(true) {
             // Page Directories have 4096 32-bit entries and must be aligned to 16Kb, thus, we need 7 frame in the worst case
             Phy_Addr pd = calloc(sizeof(Page_Directory) / sizeof(Frame) + ((sizeof(Page_Directory) / sizeof(Frame)) - 1), WHITE);
+
             unsigned int free_frames = 0;
             while(pd & (sizeof(Page_Directory) - 1)) { // pd is not aligned to 16 Kb
                 Phy_Addr * tmp = pd;
@@ -443,9 +452,9 @@ public:
         return pt->log()[page(addr)] | offset(addr);
     }
 
-    static PT_Entry phy2pte(Phy_Addr frame, Page_Flags flags) { return (frame) | flags | Page_Flags::PTE; }
+    static PT_Entry phy2pte(Phy_Addr frame, Page_Flags flags) { return (frame) | flags | Page_Flags::IS_TABLE | Page_Flags::AF; }
     static Phy_Addr pte2phy(PT_Entry entry) { return (entry & ~Page_Flags::PT_MASK); }
-    static PD_Entry phy2pde(Phy_Addr frame) { return (frame) | Page_Flags::PD_FLAGS; }
+    static PD_Entry phy2pde(Phy_Addr frame) { return (frame) | Page_Flags::IS_TABLE; }
     static Phy_Addr pde2phy(PD_Entry entry) { return (entry & ~Page_Flags::PD_MASK); }
 
     static Log_Addr phy2log(Phy_Addr phy) { return Log_Addr((RAM_BASE == PHY_MEM) ? phy : (RAM_BASE > PHY_MEM) ? phy - (RAM_BASE - PHY_MEM) : phy + (PHY_MEM - RAM_BASE)); }
@@ -482,3 +491,6 @@ class MMU: public IF<Traits<System>::multitask, ARMv8_MMU, No_MMU>::Result {};
 __END_SYS
 
 #endif
+
+
+
