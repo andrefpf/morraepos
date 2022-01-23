@@ -18,8 +18,8 @@ protected:
 public:
     typedef unsigned char  Reg8;
     typedef unsigned short Reg16;
-    typedef unsigned long  Reg32;
-    typedef unsigned long long Reg64;
+    typedef unsigned int   Reg32;
+    typedef unsigned long  Reg64;
     typedef SWITCH<Traits<CPU>::WORD_SIZE, CASE<16, Reg16, CASE<32, Reg32, CASE<64, Reg64>>>>::Result Reg;
 
     template <typename Reg>
