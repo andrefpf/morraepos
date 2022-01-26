@@ -128,7 +128,7 @@ Setup::Setup()
             build_pmm();
 
             // Print basic facts about this EPOS instance
-            // say_hi();
+            say_hi();
 
             // Configure the memory model defined above
             setup_sys_pt();
@@ -136,10 +136,10 @@ Setup::Setup()
             setup_sys_pd();
 
             // Enable paging
-            // enable_paging();
+            enable_paging();
 
             // Load EPOS parts (e.g. INIT, SYSTEM, APPLICATION)
-            // load_parts();
+            load_parts();
 
         } else { // library mode
 
@@ -693,11 +693,13 @@ void Setup::enable_paging()
         db<Setup>(INF) << "sp=" << CPU::sp() << endl;
     }
 
+    // SET FLAGS
     long tcr_flags;
     long mair_flags;
+    long sctlr_flags;
 
     tcr_flags  = CPU::IRGN0_WB_WA | CPU::IRGN1_WB_WA | CPU::ORGN0_WB_WA | CPU::ORGN1_WB_WA;
-    tcr_flags |= CPU::SH0 | CPU::SH1;
+    tcr_flags |= CPU::SH0_INNER | CPU::SH1_INNER;
     tcr_flags |= CPU::TG0_64KB | CPU::TG1_64KB;
     tcr_flags |= CPU::TBI0 | CPU::EPD1 | CPU::IPS;
     tcr_flags |= 0x160016;  // T0SZ | T1SZ
@@ -707,6 +709,9 @@ void Setup::enable_paging()
     mair_flags |= (0xc      << (8 * CPU::MAIR_DEVICE_GRE));
     mair_flags |= (0x44     << (8 * CPU::MAIR_NORMAL_NC));
     mair_flags |= (0xffll   << (8 * CPU::MAIR_NORMAL));
+
+    sctlr_flags  = (CPU::sctlr_el1() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE);
+
 
     CPU::tcr_el1(tcr_flags);
     CPU::mair_el1(mair_flags);
@@ -720,31 +725,11 @@ void Setup::enable_paging()
     CPU::ttbr1_el1((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
 
     // Enable MMU
-    CPU::sctlr_el1((CPU::sctlr_el1() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE));
+    CPU::sctlr_el1(sctlr_flags);
 
-    // // MNG_DOMAIN for no page permission verification, CLI_DOMAIN otherwise
-    // CPU::dacr((Traits<System>::multitask) ? CPU::CLI_DOMAIN : CPU::MNG_DOMAIN); 
+    CPU::dsb();
+    CPU::isb();
 
-    // CPU::dsb();
-    // CPU::isb();
-
-    // // Clear TTBCR for the system to use ttbr0 instead of 1
-    // CPU::ttbcr(0);
-    // // Set ttbr0 with base address
-    // CPU::ttbr0((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
-
-    // // Enable MMU through SCTLR and ACTLR
-    // CPU::actlr(CPU::actlr() | CPU::SMP); // Set SMP bit
-    // CPU::sctlr((CPU::sctlr() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE) & ~(CPU::AFE));
-
-    // CPU::dsb();
-    // CPU::isb();
-
-    // // MMU now enabled - Virtual address system now active
-    // // Branch Prediction Enable
-    // CPU::sctlr(CPU::sctlr() | (1 << 11)); // Z bit
-
-    // Flush TLB to ensure we've got the right memory organization
     MMU::flush_tlb();
 
     // Adjust pointers that will still be used to their logical addresses

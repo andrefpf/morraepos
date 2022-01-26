@@ -141,13 +141,14 @@ public:
         TBI1                        = 1l     << 38,
         TBI0                        = 1l     << 37,
         AS                          = 1l     << 36,
-        IPS                         = 1l     << 34,
+        IPS                         = 3l     << 32,
         
-        TG1_4KB                     = 0l     << 31,
-        TG1_64KB                    = 1l     << 31,
-        TG1_16KB                    = 2l     << 31,
+        TG1_16KB                    = 1l     << 30,
+        TG1_4KB                     = 2l     << 30,
+        TG1_64KB                    = 3l     << 30,
 
-        SH1                         = 1l     << 28,
+        SH1_OUTER                   = 2l     << 28,
+        SH1_INNER                   = 3l     << 28,
         
         // CACHE ASSOCIATED WITH TTBR1
         ORGN1_WB_WA                 = 1l     << 26,   // Outer Write Back, Read Allocate, Write Allocate
@@ -161,19 +162,20 @@ public:
         AP1                         = 1l     << 22,
         T1SZ                        = 1l     << 21,
 
-        TG0_4KB                     = 0l     << 15,
-        TG0_64KB                    = 1l     << 15,
-        TG0_16KB                    = 2l     << 15,
+        TG0_4KB                     = 0l     << 14,
+        TG0_64KB                    = 1l     << 14,
+        TG0_16KB                    = 2l     << 14,
 
-        SH0                         = 1l     << 13,
+        SH0_OUTER                   = 2l     << 12,
+        SH0_INNER                   = 3l     << 12,
 
         // CACHE ASSOCIATED WITH TTBR0
-        ORGN0_WB_WA                 = 1l     << 11,   // Outer Write Back, Read Allocate, Write Allocate
-        ORGN0_WT_NWA                = 2l     << 11,   // Outer Write Through, Read Allocate, No Write Allocate
-        ORGN0_WB_NWA                = 3l     << 11,   // Outer Write Back, Read Allocate, No Write Allocate
-        IRGN0_WB_WA                 = 1l     <<  9,   // Inner Write Back, Read Allocate, Write Allocate
-        IRGN0_WT_NWA                = 2l     <<  9,   // Inner Write Through, Read Allocate, No Write Allocate
-        IRGN0_WB_NWA                = 3l     <<  9,   // Inner Write Back, Read Allocate, No Write Allocate
+        ORGN0_WB_WA                 = 1l     << 10,   // Outer Write Back, Read Allocate, Write Allocate
+        ORGN0_WT_NWA                = 2l     << 10,   // Outer Write Through, Read Allocate, No Write Allocate
+        ORGN0_WB_NWA                = 3l     << 10,   // Outer Write Back, Read Allocate, No Write Allocate
+        IRGN0_WB_WA                 = 1l     <<  8,   // Inner Write Back, Read Allocate, Write Allocate
+        IRGN0_WT_NWA                = 2l     <<  8,   // Inner Write Through, Read Allocate, No Write Allocate
+        IRGN0_WB_NWA                = 3l     <<  8,   // Inner Write Back, Read Allocate, No Write Allocate
 
         EPD0                        = 1l     <<  7,
         T0SZ                        = 1l     <<  0,
