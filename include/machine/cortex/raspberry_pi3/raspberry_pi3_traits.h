@@ -38,21 +38,35 @@ public:
     static const unsigned int RESET             = 0x00080000;
     static const unsigned int SETUP             = library_mode ? NOT_USED : RESET;
 
-    // Logical Memory Map
+    // Logical Memory Map - Mudar isso depois
+    static const unsigned int DIRECTORY_SIZE    = 0x20000000;
     static const unsigned int VECTOR_TABLE      = 0;
-    static const unsigned int APP_LOW           = library_mode ? RESET : 0x80000000;
-    static const unsigned int APP_HIGH          = APP_LOW + (RAM_TOP - RAM_BASE) - 1;
+    static const unsigned int APP_LOW           = library_mode ? RESET : 0x60000000;
+    static const unsigned int APP_HIGH          = APP_LOW + DIRECTORY_SIZE;
 
     static const unsigned int APP_CODE          = library_mode ? RESET : APP_LOW;
-    static const unsigned int APP_DATA          = APP_CODE + 4 * 1024 * 1024;
+    static const unsigned int APP_DATA          = APP_CODE + DIRECTORY_SIZE;
 
-    static const unsigned int INIT              = library_mode ? NOT_USED : 0x00080000;
+    static const unsigned int INIT              = library_mode ? NOT_USED : 0x20000000;
     static const unsigned int PHY_MEM           = 0x00000000;   // 0 (max 1792 MB)
-    static const unsigned int IO                = 0x70000000;   // 2 GB - 256 MB (max 247 MB)
-    static const unsigned int SYS               = 0xff700000;   // 4 GB - 9 MB
+    static const unsigned int IO                = 0x40000000;   // 2 GB - 256 MB (max 247 MB)
+    static const unsigned int SYS               = 0xA0000000;   // 4 GB - 9 MB
+
+    // // Logical Memory Map
+    // static const unsigned int VECTOR_TABLE      = 0;
+    // static const unsigned int APP_LOW           = library_mode ? RESET : 0x80000000;
+    // static const unsigned int APP_HIGH          = APP_LOW + (RAM_TOP - RAM_BASE) - 1;
+
+    // static const unsigned int APP_CODE          = library_mode ? RESET : APP_LOW;
+    // static const unsigned int APP_DATA          = APP_CODE + 4 * 1024 * 1024;
+
+    // static const unsigned int INIT              = library_mode ? NOT_USED : 0x00080000;
+    // static const unsigned int PHY_MEM           = 0x00000000;   // 0 (max 1792 MB)
+    // static const unsigned int IO                = 0x70000000;   // 2 GB - 256 MB (max 247 MB)
+    // static const unsigned int SYS               = 0xff700000;   // 4 GB - 9 MB
 
     // Default Sizes and Quantities
-    static const unsigned int STACK_SIZE        = 16 * 1024;
+    static const unsigned int STACK_SIZE        = 64 * 1024;   // A full page
     static const unsigned int MAX_THREADS       = 16;
     static const unsigned int HEAP_SIZE         = (MAX_THREADS + CPUS) * STACK_SIZE;
 

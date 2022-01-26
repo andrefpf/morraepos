@@ -12,7 +12,7 @@ struct System_Info
 private:
     typedef unsigned long LAddr;
     typedef unsigned long PAddr;
-    typedef unsigned int Size;
+    typedef unsigned long Size;
 
 public:
     // The information we have at boot time (built by MKBI)

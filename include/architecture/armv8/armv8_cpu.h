@@ -112,6 +112,73 @@ public:
         MODE_SYS        = 0x1f
     };
 
+    // TCR EL1 bits
+    enum {
+        DS                          = 1l     << 59,
+        TCMA1                       = 1l     << 58,
+        TCMA0                       = 1l     << 57,
+        E0PD1                       = 1l     << 56,
+        E0PD0                       = 1l     << 55,
+        NFD1                        = 1l     << 54,
+        NFD0                        = 1l     << 53,
+        TBID1                       = 1l     << 52,
+        TBID0                       = 1l     << 51,
+
+        HWU162                      = 1l     << 50,
+        HWU161                      = 1l     << 49,
+        HWU160                      = 1l     << 48,
+        HWU159                      = 1l     << 47,
+
+        HWU062                      = 1l     << 46,
+        HWU061                      = 1l     << 45,
+        HWU060                      = 1l     << 44,
+        HWU059                      = 1l     << 43,
+        
+        HPD1                        = 1l     << 42,
+        HPD0                        = 1l     << 41,
+        HD                          = 1l     << 40,
+        HA                          = 1l     << 39,
+        TBI1                        = 1l     << 38,
+        TBI0                        = 1l     << 37,
+        AS                          = 1l     << 36,
+        IPS                         = 1l     << 34,
+        
+        TG1_4KB                     = 0l     << 31,
+        TG1_64KB                    = 1l     << 31,
+        TG1_16KB                    = 2l     << 31,
+
+        SH1                         = 1l     << 28,
+        
+        // CACHE ASSOCIATED WITH TTBR1
+        ORGN1_WB_WA                 = 1l     << 26,   // Outer Write Back, Read Allocate, Write Allocate
+        ORGN1_WT_NWA                = 2l     << 26,   // Outer Write Through, Read Allocate, No Write Allocate
+        ORGN1_WB_NWA                = 3l     << 26,   // Outer Write Back, Read Allocate, No Write Allocate
+        IRGN1_WB_WA                 = 1l     << 24,   // Inner Write Back, Read Allocate, Write Allocate
+        IRGN1_WT_NWA                = 2l     << 24,   // Inner Write Through, Read Allocate, No Write Allocate
+        IRGN1_WB_NWA                = 3l     << 24,   // Inner Write Back, Read Allocate, No Write Allocate
+
+        EPD1                        = 1l     << 23,
+        AP1                         = 1l     << 22,
+        T1SZ                        = 1l     << 21,
+
+        TG0_4KB                     = 0l     << 15,
+        TG0_64KB                    = 1l     << 15,
+        TG0_16KB                    = 2l     << 15,
+
+        SH0                         = 1l     << 13,
+
+        // CACHE ASSOCIATED WITH TTBR0
+        ORGN0_WB_WA                 = 1l     << 11,   // Outer Write Back, Read Allocate, Write Allocate
+        ORGN0_WT_NWA                = 2l     << 11,   // Outer Write Through, Read Allocate, No Write Allocate
+        ORGN0_WB_NWA                = 3l     << 11,   // Outer Write Back, Read Allocate, No Write Allocate
+        IRGN0_WB_WA                 = 1l     <<  9,   // Inner Write Back, Read Allocate, Write Allocate
+        IRGN0_WT_NWA                = 2l     <<  9,   // Inner Write Through, Read Allocate, No Write Allocate
+        IRGN0_WB_NWA                = 3l     <<  9,   // Inner Write Back, Read Allocate, No Write Allocate
+
+        EPD0                        = 1l     <<  7,
+        T0SZ                        = 1l     <<  0,
+    };
+
     // Exceptions
     typedef Reg Exception_Id;
     enum {
@@ -125,13 +192,21 @@ public:
         EXC_FIQ                     = 8
     };
 
-    // SCTLR bits - TODO
+    // SCTLR bits
     enum {
         MMU_ENABLE  = 1 << 0,  // MMU enable
         DCACHE      = 1 << 2,  // Data cache enable
         BRANCH_PRED = 1 << 11, // Z bit, branch prediction enable
         ICACHE      = 1 << 12, // Instruction cache enable
-        // AFE         = 1 << 29  // Access Flag enable //TODO
+    };
+
+    // MAIR El1 bits
+    enum {
+        MAIR_DEVICE_NGNRNE          = 0,
+        MAIR_DEVICE_NGNRE           = 1,
+        MAIR_DEVICE_GRE             = 2,
+        MAIR_NORMAL_NC              = 3,
+        MAIR_NORMAL                 = 4,
     };
 
     // ACTLR bits - TODO
@@ -254,6 +329,25 @@ public: // SPECIAL REGISTERS
     static Reg hcr_el2() {Reg r; ASM("mrs %0, hcr_el2" : "=r"(r)); return r; }
     static void hcr_el2(Reg r) { ASM("msr hcr_el2, %0" : : "r"(r) :);}
 
+    // Translation Control Register
+    static Reg tcr_el1() {Reg r; ASM("mrs %0, tcr_el1" : "=r"(r)); return r; }
+    static void tcr_el1(Reg r) { ASM("msr tcr_el1, %0" : : "r"(r) :);}
+
+    static Reg tcr_el2() {Reg r; ASM("mrs %0, tcr_el2" : "=r"(r)); return r; }
+    static void tcr_el2(Reg r) { ASM("msr tcr_el2, %0" : : "r"(r) :);}
+
+    static Reg tcr_el3() {Reg r; ASM("mrs %0, tcr_el3" : "=r"(r)); return r; }
+    static void tcr_el3(Reg r) { ASM("msr tcr_el3, %0" : : "r"(r) :);}
+
+    // Memory Attribute Indirection Register 
+    static Reg mair_el1() {Reg r; ASM("mrs %0, mair_el1" : "=r"(r)); return r; }
+    static void mair_el1(Reg r) { ASM("msr mair_el1, %0" : : "r"(r) :);}
+
+    static Reg mair_el2() {Reg r; ASM("mrs %0, mair_el2" : "=r"(r)); return r; }
+    static void mair_el2(Reg r) { ASM("msr mair_el2, %0" : : "r"(r) :);}
+
+    static Reg mair_el3() {Reg r; ASM("mrs %0, mair_el3" : "=r"(r)); return r; }
+    static void mair_el3(Reg r) { ASM("msr mair_el3, %0" : : "r"(r) :);}
 
 public:
     static void dsb() { ASM("dsb sy"); }

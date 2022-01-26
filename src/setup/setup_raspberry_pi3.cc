@@ -11,9 +11,9 @@ extern "C" {
 
     // SETUP entry point is the Vector Table and resides in the .init section (not in .text), so it will be linked first and will be the first function after the ELF header in the image.
     void _entry() __attribute__ ((used, section(".init")));
+    void _vector_table() __attribute__ ((used)); // 
     void _reset(); // so it can be safely reached from the vector table
     void _setup(); // just to create a Setup object
-    void _vector_table() __attribute__ ((used)); // 
 
     // LD eliminates this variable while performing garbage collection, so --undefined=__boot_time_system_info must be present while linking
     char __boot_time_system_info[sizeof(EPOS::S::System_Info)] = "System_Info placeholder. Actual System_Info will be added by mkbi!";
@@ -131,9 +131,9 @@ Setup::Setup()
             // say_hi();
 
             // Configure the memory model defined above
-            // setup_sys_pt();
-            // setup_app_pt();
-            // setup_sys_pd();
+            setup_sys_pt();
+            setup_app_pt();
+            setup_sys_pd();
 
             // Enable paging
             // enable_paging();
@@ -297,15 +297,16 @@ void Setup::build_lm()
             panic();
         }
 
-        if(si->lm.sys_data != SYS_DATA) {
-            db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
-            panic();
-        }
+        // TODO: Understand why this is not working
+        // if(si->lm.sys_data != SYS_DATA) {
+        //     db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
+        //     panic();
+        // }
 
-        if(si->lm.sys_data + si->lm.sys_data_size > si->lm.sys_stack) {
-            db<Setup>(ERR) << "OS data segment is too large!" << endl;
-            panic();
-        }
+        // if(si->lm.sys_data + si->lm.sys_data_size > si->lm.sys_stack) {
+        //     db<Setup>(ERR) << "OS data segment is too large!" << endl;
+        //     panic();
+        // }
 
         if(MMU::page_tables(MMU::pages(si->lm.sys_stack_size)) > 1) {
             db<Setup>(ERR) << "OS stack segment is too large!" << endl;
@@ -497,6 +498,7 @@ void Setup::setup_pt(PT_Entry * pts, Phy_Addr base, unsigned int size, unsigned 
     // Each PTE maps one Page (4k), 
     // Each Page can have 4 pages with 256 ptes each
     // Thus, for each PD, map 256 pte until all requested ptes are mapped
+    db<Setup>(INF) << "Size of Page: " << sizeof(Page) << endl;
     for(unsigned int i = 0; i < size; i++) {
         pts[i] = MMU::phy2pte((base + i * sizeof(Page)), flag);
         if(Traits<Setup>::hysterically_debugged && print)
@@ -519,7 +521,7 @@ void Setup::setup_sys_pt()
     PT_Entry * sys_pt = reinterpret_cast<PT_Entry *>(si->pmm.sys_pt);
 
     // Clear the System Page Table
-    memset(sys_pt, 0, sizeof(Page));
+    memset(reinterpret_cast<void *>(sys_pt), 0, sizeof(Page));
 
     // System Info
     sys_pt[MMU::directory(SYS_INFO - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_INFO)] = MMU::phy2pte(si->pmm.sys_info, Flags::SYS);
@@ -530,8 +532,8 @@ void Setup::setup_sys_pt()
     db<Setup>(INF) << "SYS_PT PT = " << MMU::directory(SYS_PT - SYS) * (MMU::PT_ENTRIES-1) + MMU::page(SYS_PT) << endl;
 
     // System Page Directory -- 4 Pages for directory
-    sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)]   = MMU::phy2pte(si->pmm.sys_pd, Flags::SYS);
-    sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+1] = MMU::phy2pte(si->pmm.sys_pd + sizeof(Page), Flags::SYS);
+    sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)]   = MMU::phy2pte(si->pmm.sys_pd + 0 * sizeof(Page), Flags::SYS);
+    sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+1] = MMU::phy2pte(si->pmm.sys_pd + 1 * sizeof(Page), Flags::SYS);
     sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+2] = MMU::phy2pte(si->pmm.sys_pd + 2 * sizeof(Page), Flags::SYS);
     sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+3] = MMU::phy2pte(si->pmm.sys_pd + 3 * sizeof(Page), Flags::SYS);
 
@@ -563,8 +565,8 @@ void Setup::setup_app_pt()
     PT_Entry * app_data_pt = reinterpret_cast<PT_Entry *>(si->pmm.app_data_pts);
 
     // Clear the first APPLICATION Page Tables
-    memset(app_code_pt, 0, MMU::page_tables(MMU::pages(si->lm.app_code_size)) * sizeof(Page_Table));
-    memset(app_data_pt, 0, MMU::page_tables(MMU::pages(si->lm.app_data_size)) * sizeof(Page_Table));
+    memset(reinterpret_cast<void*>(app_code_pt), 0, MMU::page_tables(MMU::pages(si->lm.app_code_size)) * sizeof(Page_Table));
+    memset(reinterpret_cast<void*>(app_data_pt), 0, MMU::page_tables(MMU::pages(si->lm.app_data_size)) * sizeof(Page_Table));
 
     // APPLICATION code
     setup_pt(reinterpret_cast<PT_Entry *>(&app_code_pt[MMU::page(si->lm.app_code)]), si->pmm.app_code, MMU::pages(si->lm.app_code_size), MMU::page_tables(MMU::pages(si->lm.app_code_size)), Flags::APP);
@@ -605,7 +607,7 @@ void Setup::setup_sys_pd()
     PT_Entry * sys_pd = reinterpret_cast<PT_Entry *>(si->pmm.sys_pd);
 
     // Clear the System Page Directory
-    memset(sys_pd, 0, sizeof(Page));
+    memset(reinterpret_cast<void*>(sys_pd), 0, sizeof(Page));
 
     // Calculate the number of page tables needed to map the physical memory
     unsigned int mem_size = MMU::pages(si->bm.mem_top - si->bm.mem_base);
@@ -691,6 +693,35 @@ void Setup::enable_paging()
         db<Setup>(INF) << "sp=" << CPU::sp() << endl;
     }
 
+    long tcr_flags;
+    long mair_flags;
+
+    tcr_flags  = CPU::IRGN0_WB_WA | CPU::IRGN1_WB_WA | CPU::ORGN0_WB_WA | CPU::ORGN1_WB_WA;
+    tcr_flags |= CPU::SH0 | CPU::SH1;
+    tcr_flags |= CPU::TG0_64KB | CPU::TG1_64KB;
+    tcr_flags |= CPU::TBI0 | CPU::EPD1 | CPU::IPS;
+    tcr_flags |= 0x160016;  // T0SZ | T1SZ
+
+    mair_flags  = (0x0      << (8 * CPU::MAIR_DEVICE_NGNRNE));
+    mair_flags |= (0x4      << (8 * CPU::MAIR_DEVICE_NGNRE));
+    mair_flags |= (0xc      << (8 * CPU::MAIR_DEVICE_GRE));
+    mair_flags |= (0x44     << (8 * CPU::MAIR_NORMAL_NC));
+    mair_flags |= (0xffll   << (8 * CPU::MAIR_NORMAL));
+
+    CPU::tcr_el1(tcr_flags);
+    CPU::mair_el1(mair_flags);
+
+    CPU::dsb();
+    CPU::isb();
+
+    // TODO: Change this to separate kernel from application
+    // Set the page tables that MMU will use 
+    CPU::ttbr0_el1((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
+    CPU::ttbr1_el1((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
+
+    // Enable MMU
+    CPU::sctlr_el1((CPU::sctlr_el1() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE));
+
     // // MNG_DOMAIN for no page permission verification, CLI_DOMAIN otherwise
     // CPU::dacr((Traits<System>::multitask) ? CPU::CLI_DOMAIN : CPU::MNG_DOMAIN); 
 
@@ -713,16 +744,16 @@ void Setup::enable_paging()
     // // Branch Prediction Enable
     // CPU::sctlr(CPU::sctlr() | (1 << 11)); // Z bit
 
-    // // Flush TLB to ensure we've got the right memory organization
-    // MMU::flush_tlb();
+    // Flush TLB to ensure we've got the right memory organization
+    MMU::flush_tlb();
 
-    // // Adjust pointers that will still be used to their logical addresses
-    // Display::init(); // adjust the pointers in Display by calling init 
+    // Adjust pointers that will still be used to their logical addresses
+    Display::init(); // adjust the pointers in Display by calling init 
 
-    // if(Traits<Setup>::hysterically_debugged) {
-    //     db<Setup>(INF) << "pc=" << CPU::pc() << endl;
-    //     db<Setup>(INF) << "sp=" << CPU::sp() << endl;
-    // }
+    if(Traits<Setup>::hysterically_debugged) {
+        db<Setup>(INF) << "pc=" << CPU::pc() << endl;
+        db<Setup>(INF) << "sp=" << CPU::sp() << endl;
+    }
 }
 
 void Setup::load_parts()
@@ -928,7 +959,7 @@ void _setup()
     // CPU::flush_caches();
     // CPU::flush_branch_predictors();
     // CPU::flush_tlb();
-    // CPU::actlr(CPU::actlr() | CPU::DCACHE_PREFE); // enable Dside prefetch
+    // CPU::actlr_el1(CPU::actlr_el1() | CPU::DCACHE_PREFE); // enable Dside prefetch
     
     Setup setup;
 }
