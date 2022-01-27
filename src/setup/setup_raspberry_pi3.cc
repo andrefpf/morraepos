@@ -128,7 +128,7 @@ Setup::Setup()
             build_pmm();
 
             // Print basic facts about this EPOS instance
-            say_hi();
+            // say_hi();
 
             // Configure the memory model defined above
             setup_sys_pt();
@@ -148,7 +148,6 @@ Setup::Setup()
 
             // Enable paging
             enable_paging();
-
         }
 
         // Signalizes other CPUs that paging is up
@@ -159,7 +158,6 @@ Setup::Setup()
         // Wait for the Boot CPU to setup page tables
         while(!paging_ready);
         enable_paging();
-
     }
 
     // SETUP ends here, so let's transfer control to next stage (INIT or APP)
@@ -536,6 +534,7 @@ void Setup::setup_sys_pt()
     sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+1] = MMU::phy2pte(si->pmm.sys_pd + 1 * sizeof(Page), Flags::SYS);
     sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+2] = MMU::phy2pte(si->pmm.sys_pd + 2 * sizeof(Page), Flags::SYS);
     sys_pt[MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD)+3] = MMU::phy2pte(si->pmm.sys_pd + 3 * sizeof(Page), Flags::SYS);
+    db<Setup>(INF) << "SYS_PD PT = " << MMU::directory(SYS_PD - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_PD) << endl;
 
     // SYSTEM code
     setup_pt(reinterpret_cast<PT_Entry *>(&sys_pt[MMU::directory(SYS_CODE - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_CODE)]), si->pmm.sys_code, MMU::pages(si->lm.sys_code_size), MMU::page_tables(MMU::pages(si->lm.sys_code_size)), Flags::SYS, true);
@@ -667,6 +666,8 @@ void Setup::setup_sys_pd()
     // Attach the OS (i.e. sys_pt)
     // One sys_pt for code
     sys_pd[MMU::directory(SYS)] = MMU::phy2pde(si->pmm.sys_pt);
+    db<Setup>(INF) << "attach SYS on sys pd done" << endl;
+
     // Two sys_pt for data
     sys_pd[MMU::directory(SYS) + 1] = MMU::phy2pde(si->pmm.sys_pt + sizeof(Page_Table));
     sys_pd[MMU::directory(SYS) + 2] = MMU::phy2pde(si->pmm.sys_pt + 2 * sizeof(Page_Table));
@@ -696,7 +697,6 @@ void Setup::enable_paging()
     // SET FLAGS
     long tcr_flags;
     long mair_flags;
-    long sctlr_flags;
 
     tcr_flags  = CPU::IRGN0_WB_WA | CPU::IRGN1_WB_WA | CPU::ORGN0_WB_WA | CPU::ORGN1_WB_WA;
     tcr_flags |= CPU::SH0_INNER | CPU::SH1_INNER;
@@ -710,9 +710,6 @@ void Setup::enable_paging()
     mair_flags |= (0x44     << (8 * CPU::MAIR_NORMAL_NC));
     mair_flags |= (0xffll   << (8 * CPU::MAIR_NORMAL));
 
-    sctlr_flags  = (CPU::sctlr_el1() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE);
-
-
     CPU::tcr_el1(tcr_flags);
     CPU::mair_el1(mair_flags);
 
@@ -725,7 +722,7 @@ void Setup::enable_paging()
     CPU::ttbr1_el1((Traits<System>::multitask) ? si->pmm.sys_pd : PAGE_TABLES);
 
     // Enable MMU
-    CPU::sctlr_el1(sctlr_flags);
+    CPU::sctlr_el1((CPU::sctlr_el1() | CPU::DCACHE | CPU::ICACHE | CPU::MMU_ENABLE));
 
     CPU::dsb();
     CPU::isb();
@@ -743,87 +740,92 @@ void Setup::enable_paging()
 
 void Setup::load_parts()
 {
-    // db<Setup>(TRC) << "Setup::load_parts()" << endl;
+    db<Setup>(TRC) << "Setup::load_parts()" << endl;
 
-    // // Relocate System_Info
-    // if(sizeof(System_Info) > sizeof(Page))
-    //     db<Setup>(WRN) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
+    // Relocate System_Info
+    if(sizeof(System_Info) > sizeof(Page))
+        db<Setup>(WRN) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
 
-    // if(Traits<Setup>::hysterically_debugged)
-    //     db<Setup>(INF) << "Setup:SYS_INFO: " << MMU::Translation(SYS_INFO) << endl;
-    // memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
-    // si = reinterpret_cast<System_Info *>(SYS_INFO);
+    if(Traits<Setup>::hysterically_debugged)
+        db<Setup>(INF) << "Setup:SYS_INFO: " << MMU::Translation(SYS_INFO) << endl;
 
-    // // Load INIT
-    // if(si->lm.has_ini) {
-    //     db<Setup>(TRC) << "Setup::load_init()" << endl;
-    //     ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
-    //     if(Traits<Setup>::hysterically_debugged) {
-    //         db<Setup>(INF) << "Setup:ini_elf: " << MMU::Translation(ini_elf) << endl;
-    //         db<Setup>(INF) << "Setup:ini_elf[0]: " << MMU::Translation(ini_elf->segment_address(0)) << endl;
-    //         db<Setup>(INF) << "Setup:ini_elf[0].size: " << ini_elf->segment_size(0) << endl;
-    //     }
-    //     if(ini_elf->load_segment(0) < 0) {
-    //         db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
-    //         panic();
-    //     }
-    //     for(int i = 1; i < ini_elf->segments(); i++)
-    //         if(ini_elf->load_segment(i) < 0) {
-    //             db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
-    //             panic();
-    //         }
-    // }
+    memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
+    si = reinterpret_cast<System_Info *>(SYS_INFO);
 
-    // // Load SYSTEM
-    // if(si->lm.has_sys) {
-    //     db<Setup>(TRC) << "Setup::load_os()" << endl;
-    //     ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
-    //     if(Traits<Setup>::hysterically_debugged) {
-    //         db<Setup>(INF) << "Setup:sys_elf: " << MMU::Translation(sys_elf) << endl;
-    //         db<Setup>(INF) << "Setup:sys_elf[0]: " << MMU::Translation(sys_elf->segment_address(0)) << endl;
-    //         db<Setup>(INF) << "Setup:sys_elf[0].size: " << sys_elf->segment_size(0) << endl;
-    //     }
-    //     if(sys_elf->load_segment(0) < 0 || sys_elf->load_segment(1) < 0) {
-    //         db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
-    //         panic();
-    //     }
-    //     for(int i = 2; i < sys_elf->segments(); i++) {
-    //         if(sys_elf->load_segment(i) < 0) {
-    //             db<Setup>(ERR) << "OS data segment was corrupted during SETUP!" << endl;
-    //             panic();
-    //         }
-    //     }
-    // }
+    // Load INIT
+    if(si->lm.has_ini) {
+        db<Setup>(TRC) << "Setup::load_init()" << endl;
+        ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+        if(Traits<Setup>::hysterically_debugged) {
+            db<Setup>(INF) << "Setup:ini_elf: " << MMU::Translation(ini_elf) << endl;
+            db<Setup>(INF) << "Setup:ini_elf[0]: " << MMU::Translation(ini_elf->segment_address(0)) << endl;
+            db<Setup>(INF) << "Setup:ini_elf[0].size: " << ini_elf->segment_size(0) << endl;
+        }
+        if(ini_elf->load_segment(0) < 0) {
+            db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
+        for(int i = 1; i < ini_elf->segments(); i++)
+            if(ini_elf->load_segment(i) < 0) {
+                db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
+                panic();
+            }
+    }
 
-    // // Load APP
-    // if(si->lm.has_app) {
-    //     db<Setup>(TRC) << "Setup::load_app()" << endl;
-    //     ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
-    //     if(Traits<Setup>::hysterically_debugged) {
-    //         db<Setup>(INF) << "Setup:app_elf: " << (void*)app_elf << endl;
-    //         db<Setup>(INF) << "Setup:app_elf: " << MMU::Translation(app_elf) << endl;
-    //         db<Setup>(INF) << "Setup:app_elf[0]: " << MMU::Translation(app_elf->segment_address(0)) << endl;
-    //         db<Setup>(INF) << "Setup:app_elf[0].size: " << app_elf->segment_size(0) << endl;
-    //     }
-    //     if(app_elf->load_segment(0) < 0) {
-    //         db<Setup>(ERR) << "Application code segment was corrupted during SETUP!" << endl;
-    //         panic();
-    //     }
-    //     for(int i = 1; i < app_elf->segments(); i++) {
-    //         if(app_elf->load_segment(i) < 0) {
-    //             db<Setup>(ERR) << "Application data segment was corrupted during SETUP!" << endl;
-    //             panic();
-    //         }
-    //     }
-    // }
+    // Load SYSTEM
+    if(si->lm.has_sys) {
+        db<Setup>(TRC) << "Setup::load_os()" << endl;
+        ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+        if(Traits<Setup>::hysterically_debugged) {
+            db<Setup>(INF) << "Setup:sys_elf: " << MMU::Translation(sys_elf) << endl;
+            db<Setup>(INF) << "Setup:sys_elf[0]: " << MMU::Translation(sys_elf->segment_address(0)) << endl;
+            db<Setup>(INF) << "Setup:sys_elf[0].size: " << sys_elf->segment_size(0) << endl;
+        }
+        if(sys_elf->load_segment(0) < 0) {
+            db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
+        // if(sys_elf->load_segment(1) < 0) {
+        //     db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
+        //     panic();
+        // }
+        for(int i = 2; i < sys_elf->segments(); i++) {
+            if(sys_elf->load_segment(i) < 0) {
+                db<Setup>(ERR) << "OS data segment was corrupted during SETUP!" << endl;
+                panic();
+            }
+        }
+    }
 
-    // // Load EXTRA
-    // if(si->lm.has_ext) {
-    //     db<Setup>(TRC) << "Setup::load_extra()" << endl;
-    //     if(Traits<Setup>::hysterically_debugged)
-    //         db<Setup>(INF) << "Setup:APP_EXTRA:" << MMU::Translation(si->lm.app_extra) << endl;
-    //     memcpy(reinterpret_cast<void *>(si->lm.app_extra), &bi[si->bm.extras_offset], si->lm.app_extra_size);
-    // }
+    // Load APP
+    if(si->lm.has_app) {
+        db<Setup>(TRC) << "Setup::load_app()" << endl;
+        ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
+        if(Traits<Setup>::hysterically_debugged) {
+            db<Setup>(INF) << "Setup:app_elf: " << (void*)app_elf << endl;
+            db<Setup>(INF) << "Setup:app_elf: " << MMU::Translation(app_elf) << endl;
+            db<Setup>(INF) << "Setup:app_elf[0]: " << MMU::Translation(app_elf->segment_address(0)) << endl;
+            db<Setup>(INF) << "Setup:app_elf[0].size: " << app_elf->segment_size(0) << endl;
+        }
+        if(app_elf->load_segment(0) < 0) {
+            db<Setup>(ERR) << "Application code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
+        for(int i = 1; i < app_elf->segments(); i++) {
+            if(app_elf->load_segment(i) < 0) {
+                db<Setup>(ERR) << "Application data segment was corrupted during SETUP!" << endl;
+                panic();
+            }
+        }
+    }
+
+    // Load EXTRA
+    if(si->lm.has_ext) {
+        db<Setup>(TRC) << "Setup::load_extra()" << endl;
+        if(Traits<Setup>::hysterically_debugged)
+            db<Setup>(INF) << "Setup:APP_EXTRA:" << MMU::Translation(si->lm.app_extra) << endl;
+        memcpy(reinterpret_cast<void *>(si->lm.app_extra), &bi[si->bm.extras_offset], si->lm.app_extra_size);
+    }
 }
 
 void Setup::adjust_perms()
@@ -906,7 +908,7 @@ using namespace EPOS::S;
 
 void _entry()
 {
-    // Configure a stack and goto _reset
+    // Configure a stack for the current level and goto _reset
     CPU::sp(Traits<Machine>::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id());
     ASM("b _reset");
 }
@@ -924,7 +926,6 @@ void _reset()
     }
 
     if(CPU::id() == 0) {
-        
         CPU::vbar_el1(reinterpret_cast<CPU::Reg>(&_vector_table));  // setup the vector table
         _bss_clear();
     }  else {

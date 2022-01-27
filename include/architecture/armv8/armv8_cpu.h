@@ -222,7 +222,7 @@ public: // SPECIAL REGISTERS
 
     static Reg zr() {return 0;}
 
-    static Log_Addr pc() {Reg r; ASM("mrs %0, pc" : "=r"(r)); return r; }   // due to RISC pipelining, PC is read with a +8 (4 for thumb) offset
+    static Log_Addr pc() {return 0;}   // PC não existe mais, deus tenha misericórdia de todos nós
 
     // Stack Pointer Registers
     static Log_Addr sp() { Reg r; ASM("mov %0, sp" : "=r"(r) :); return r; }
