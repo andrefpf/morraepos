@@ -264,9 +264,13 @@ void Setup::build_lm()
         si->lm.sys_code = sys_elf->segment_address(0);
         si->lm.sys_code_size = sys_elf->segment_size(0);
         if (sys_elf->segments() > 1) {
-            if(sys_elf->segment_address(1) < si->lm.sys_code)
+            if (sys_elf->segment_address(1) < si->lm.sys_code) {
                 si->lm.sys_code = sys_elf->segment_address(1);
-            si->lm.sys_code_size += sys_elf->segment_size(1);
+                si->lm.sys_code_size += sys_elf->segment_size(1);
+            } else {
+                si->lm.sys_data = sys_elf->segment_address(1);
+                si->lm.sys_data_size = sys_elf->segment_size(1);
+            }
         }
 
         db<Setup>(INF) << "SYS Segments: " << sys_elf->segments()<< endl;
@@ -295,16 +299,15 @@ void Setup::build_lm()
             panic();
         }
 
-        // TODO: Understand why this is not working
-        // if(si->lm.sys_data != SYS_DATA) {
-        //     db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
-        //     panic();
-        // }
+        if(si->lm.sys_data != SYS_DATA) {
+            db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
+            panic();
+        }
 
-        // if(si->lm.sys_data + si->lm.sys_data_size > si->lm.sys_stack) {
-        //     db<Setup>(ERR) << "OS data segment is too large!" << endl;
-        //     panic();
-        // }
+        if(si->lm.sys_data + si->lm.sys_data_size > si->lm.sys_stack) {
+            db<Setup>(ERR) << "OS data segment is too large!" << endl;
+            panic();
+        }
 
         if(MMU::page_tables(MMU::pages(si->lm.sys_stack_size)) > 1) {
             db<Setup>(ERR) << "OS stack segment is too large!" << endl;
@@ -541,7 +544,6 @@ void Setup::setup_sys_pt()
     db<Setup>(INF) << "SYS_CODE PT = " << MMU::directory(SYS_CODE - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_CODE) << ",size=" << si->lm.sys_code_size << endl;
     
     // SYSTEM data
-    // TODO : mexer em algo aqui
     setup_pt(reinterpret_cast<PT_Entry *>(&sys_pt[MMU::directory(SYS_DATA - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_DATA)]), si->pmm.sys_data, MMU::pages(si->lm.sys_data_size), MMU::page_tables(MMU::pages(si->lm.sys_data_size)), Flags::SYS, true);
     db<Setup>(INF) << "SYS_DATA PT = " << MMU::directory(SYS_DATA - SYS) * (MMU::PT_ENTRIES) + MMU::page(SYS_DATA) << ",size=" << si->lm.sys_data_size << endl;
 
@@ -785,10 +787,10 @@ void Setup::load_parts()
             db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
             panic();
         }
-        // if(sys_elf->load_segment(1) < 0) {
-        //     db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
-        //     panic();
-        // }
+        if(sys_elf->load_segment(1) < 0) {
+            db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
         for(int i = 2; i < sys_elf->segments(); i++) {
             if(sys_elf->load_segment(i) < 0) {
                 db<Setup>(ERR) << "OS data segment was corrupted during SETUP!" << endl;
@@ -866,7 +868,8 @@ void Setup::call_next()
                 reinterpret_cast<void (*)()>((void *)si->lm.sys_entry)();
             }
             ip = si->lm.ini_entry;
-        } else if(si->lm.has_sys)
+        } 
+        else if(si->lm.has_sys)
             ip = si->lm.sys_entry;
         else
             ip = si->lm.app_entry;

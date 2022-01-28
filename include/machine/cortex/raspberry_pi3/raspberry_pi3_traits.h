@@ -66,7 +66,7 @@ public:
     // static const unsigned int SYS               = 0xff700000;   // 4 GB - 9 MB
 
     // Default Sizes and Quantities
-    static const unsigned int STACK_SIZE        = 64 * 1024;   // A full page
+    static const unsigned int STACK_SIZE        = 64 * 4 * 1024;   // A full page
     static const unsigned int MAX_THREADS       = 16;
     static const unsigned int HEAP_SIZE         = (MAX_THREADS + CPUS) * STACK_SIZE;
 
