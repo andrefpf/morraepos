@@ -137,7 +137,8 @@ cortex_IMG_SUFFIX	:= .bin
 endif
 
 ifeq ($(MMOD),raspberry_pi3)
-cortex_CC_FLAGS		:= -mcpu=cortex-a53 -mabi=lp64 -g
+cortex_CC_FLAGS		:= -mcpu=cortex-a53 -mabi=lp64 -g -Wno-error=stringop-overflow
+
 cortex_AS_FLAGS		:= -mcpu=cortex-a53
 cortex_LD_FLAGS		:=
 cortex_EMULATOR		= qemu-system-aarch64 -M raspi3b -cpu cortex-a53 -smp 4 -m 1G -serial null -serial mon:stdio -nographic -no-reboot -device loader,file=$(APPLICATION).img,addr=$(IMAGE_ADDR),force-raw=on -kernel 
