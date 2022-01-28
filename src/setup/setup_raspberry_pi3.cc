@@ -670,10 +670,11 @@ void Setup::setup_sys_pd()
     sys_pd[MMU::directory(SYS)] = MMU::phy2pde(si->pmm.sys_pt);
     db<Setup>(INF) << "attach SYS on sys pd done" << endl;
 
-    // Two sys_pt for data
-    sys_pd[MMU::directory(SYS) + 1] = MMU::phy2pde(si->pmm.sys_pt + sizeof(Page_Table));
-    sys_pd[MMU::directory(SYS) + 2] = MMU::phy2pde(si->pmm.sys_pt + 2 * sizeof(Page_Table));
-    db<Setup>(INF) << "attach SYS on sys pd done" << endl;
+    // // Two sys_pt for data
+    // // NO NO NO, One is enougth 
+    // sys_pd[MMU::directory(SYS) + 1] = MMU::phy2pde(si->pmm.sys_pt + sizeof(Page_Table));
+    // sys_pd[MMU::directory(SYS) + 2] = MMU::phy2pde(si->pmm.sys_pt + 2 * sizeof(Page_Table));
+    // db<Setup>(INF) << "attach SYS on sys pd done" << endl;
 
     // Attach the first APPLICATION CODE (i.e. app_code_pt)
     n_pts = MMU::page_tables(MMU::pages(si->lm.app_code_size));

@@ -59,7 +59,7 @@ public:
         };
 
         enum {
-            APP     = (IS_TABLE | NG | SHI | AF | AP0),
+            APP     = (IS_TABLE | NG | SHI | AF ),
             APPD    = (IS_TABLE | NG | SHI | AF | AP0 | PNX | UXN),
             APPC    = (IS_TABLE | NG | SHI | AF | AP0 | AP1),
             SYS     = (IS_TABLE | NG | SHI | AF ),

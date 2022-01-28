@@ -57,8 +57,8 @@ struct Memory_Map: public Cortex_Memory_Map
         SYS_PT          = Traits<System>::multitask ? SYS + 0x00510000 : NOT_USED, // 4KB = 256 + 256 + 256 entries to map from SYS to SYS_STACK
         SYS_PD          = Traits<System>::multitask ? SYS + 0x00520000 : NOT_USED, // 16KB mem == 4k PD entries
         SYS_DATA        = Traits<System>::multitask ? SYS + 0x00560000 : NOT_USED,
-        SYS_STACK       = Traits<System>::multitask ? SYS + 0x00700000 : NOT_USED, // 16KB mem == STACK_SIZE
-        SYS_HEAP        = Traits<System>::multitask ? SYS + 0x00800000 : NOT_USED
+        SYS_STACK       = Traits<System>::multitask ? SYS + 0x10800000 : NOT_USED, // 16KB mem == STACK_SIZE
+        SYS_HEAP        = Traits<System>::multitask ? SYS + 0x20000000 : NOT_USED
     };
 };
 

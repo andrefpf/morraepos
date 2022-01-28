@@ -26,10 +26,25 @@ public:
             System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
                 System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(Address_Space(MMU::current()).attach(System::_heap_segment), System::_heap_segment->size());
-            else
-                System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP), System::_heap_segment->size());
+            else {
+                void * preheap = &System::_preheap[sizeof(Segment)];
+                void * addr    =  Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
+                int    size    =  System::_heap_segment->size();
+
+                db<Init>(INF) << "preheap = " << preheap << endl;
+                db<Init>(INF) << "addr    = " << addr    << endl;
+                db<Init>(INF) << "size    = " << size    << endl;
+
+                System::_heap = new (preheap) Heap(addr, size);
+                db<Init>(INF) << "Num of elements in my new heap = " << System::_heap->size() << endl;
+            }
         } else
             System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
+        db<Init>(INF) << "done!" << endl;
+
+        db<Init>(INF) << "Colocando coisas na Heap" << endl;
+        int * teste = new (SYSTEM) int(10);
+        db<Init>(INF) << teste << endl;
         db<Init>(INF) << "done!" << endl;
 
         db<Init>(INF) << "Initializing the machine: " << endl;
