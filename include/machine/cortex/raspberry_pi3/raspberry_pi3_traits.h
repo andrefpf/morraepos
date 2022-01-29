@@ -38,19 +38,43 @@ public:
     static const unsigned int RESET             = 0x00080000;
     static const unsigned int SETUP             = library_mode ? NOT_USED : RESET;
 
-    // Logical Memory Map - Mudar isso depois
+    // Logical Memory Map
+    // Set one directory for each
+    static const unsigned int VECTOR_TABLE      = 0;            // Isso nem é mais usado  
     static const unsigned int DIRECTORY_SIZE    = 0x20000000;
-    static const unsigned int VECTOR_TABLE      = 0;
-    static const unsigned int APP_LOW           = library_mode ? RESET : 0x60000000;
-    static const unsigned int APP_HIGH          = APP_LOW + DIRECTORY_SIZE;
 
-    static const unsigned int APP_CODE          = library_mode ? RESET : APP_LOW;
-    static const unsigned int APP_DATA          = APP_CODE + DIRECTORY_SIZE;
-
+    static const unsigned int PHY_MEM           = 0x00000000;
     static const unsigned int INIT              = library_mode ? NOT_USED : 0x20000000;
-    static const unsigned int PHY_MEM           = 0x00000000;   // 0 (max 1792 MB)
-    static const unsigned int IO                = 0x40000000;   // 2 GB - 256 MB (max 247 MB)
-    static const unsigned int SYS               = 0xA0000000;   // 4 GB - 9 MB
+    static const unsigned int IO                = 0x40000000;
+    static const unsigned int APP_LOW           = library_mode ? RESET : 0x60000000;
+    static const unsigned int APP_HIGH          = APP_LOW + DIRECTORY_SIZE * 2;
+    static const unsigned int SYS               = 0xC0000000;
+
+    static const unsigned int APP_CODE          = APP_LOW;
+    static const unsigned int APP_DATA          = APP_CODE + DIRECTORY_SIZE;
+    static const unsigned int APP_HEAP          = APP_DATA + DIRECTORY_SIZE;
+
+
+
+
+
+    
+
+
+
+
+
+    // static const unsigned int VECTOR_TABLE      = 0;
+    // static const unsigned int APP_LOW           = library_mode ? RESET : 0x60000000;
+
+    // static const unsigned int APP_CODE          = library_mode ? RESET : APP_LOW;
+    // static const unsigned int APP_DATA          = APP_CODE + DIRECTORY_SIZE;
+    // static const unsigned int APP_HEAP          = APP_DATA + DIRECTORY_SIZE;
+
+    // static const unsigned int INIT              = library_mode ? NOT_USED : 0x20000000;
+    // static const unsigned int PHY_MEM           = 0x00000000;   // 0 (max 1792 MB)
+    // static const unsigned int IO                = 0x40000000;   // 2 GB - 256 MB (max 247 MB)
+    // static const unsigned int SYS               = 0xA0000000;   // 4 GB - 9 MB
 
     // // Logical Memory Map
     // static const unsigned int VECTOR_TABLE      = 0;

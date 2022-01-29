@@ -30,7 +30,7 @@ public:
             Application::_heap_segment = new (tmp_segm) Segment(HEAP_SIZE, Segment::Flags::APP);
 
             // Attaches the new segment with a address space
-            Address_Space::Log_Addr address = Address_Space(MMU::current()).attach(Application::_heap_segment);
+            Address_Space::Log_Addr address = Address_Space(MMU::current()).attach(Application::_heap_segment, Memory_Map::APP_HEAP);
 
             // Creates a heap on the new segment
             Application::_heap = new(tmp_heap) Heap(address, Application::_heap_segment->size());

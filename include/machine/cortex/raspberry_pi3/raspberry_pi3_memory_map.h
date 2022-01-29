@@ -41,6 +41,7 @@ struct Memory_Map: public Cortex_Memory_Map
 
         APP_CODE        = Traits<Machine>::APP_CODE,
         APP_DATA        = Traits<Machine>::APP_DATA,
+        APP_HEAP        = Traits<Machine>::APP_HEAP,
 
         PHY_MEM         = Traits<Machine>::PHY_MEM,
         IO              = Traits<Machine>::IO,
