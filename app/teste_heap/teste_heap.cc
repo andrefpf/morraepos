@@ -51,7 +51,7 @@ void test_1(char * ptr) {
 void test_2(char * ptr) {
     cout << "Starting Test 2" << endl;
 
-    int * addr = reinterpret_cast<int *>(ptr) - 3;  // Compensate 2 integers subtracted during allocation
+    size_t * addr = reinterpret_cast<size_t *>(ptr - sizeof(int) - sizeof(void*));
     Heap * heap = reinterpret_cast<Heap *> (*addr); // Figure out heap like in Heap::typed_free
 
     void * data_end = reinterpret_cast<void *> (&_end);
