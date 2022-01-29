@@ -42,11 +42,6 @@ public:
             System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
         db<Init>(INF) << "done!" << endl;
 
-        db<Init>(INF) << "Colocando coisas na Heap" << endl;
-        int * teste = new (SYSTEM) int(10);
-        db<Init>(INF) << teste << endl;
-        db<Init>(INF) << "done!" << endl;
-
         db<Init>(INF) << "Initializing the machine: " << endl;
         Machine::init();
         db<Init>(INF) << "done!" << endl;

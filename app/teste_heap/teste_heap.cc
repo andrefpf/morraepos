@@ -6,7 +6,9 @@ using namespace EPOS;
 
 OStream cout;
 
+typedef S::U::Heap Heap;
 
+void * APP_HEAP = reinterpret_cast<void *> (Traits<Machine>::APP_HEAP);
 static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
 static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
 
@@ -23,12 +25,15 @@ class TestClass {
 void test_1(char * ptr) {
     cout << "Starting Test 1" << endl;
 
+    int offset = 2 * sizeof(void *) + sizeof(int);
+
     void * data_end = reinterpret_cast<void *> (&_end);     // Get the pointer to the end of the data segment
-    void * heap_pointer = reinterpret_cast<void *> (ptr - HEAP_SIZE + 8);   // Subtract HEAP_SIZE because of top-down allocator aproach, and compensate 8 bytes subtracted during allocation
-    void * heap_with_stack = reinterpret_cast<void *> (ptr - HEAP_SIZE + 8 - STACK_SIZE);   // Same as before but subtract stack allocated by SETUP
+    void * heap_pointer = reinterpret_cast<void *> (ptr - HEAP_SIZE + offset);   // Subtract HEAP_SIZE because of top-down allocator aproach, and compensate 8 bytes subtracted during allocation
+    void * heap_with_stack = reinterpret_cast<void *> (ptr - HEAP_SIZE - STACK_SIZE + offset);   // Same as before but subtract stack allocated by SETUP
 
     assert(data_end != heap_pointer);
     assert(data_end != heap_with_stack);
+    assert(heap_pointer == APP_HEAP);
 
     cout << "heap pointer address" << heap_pointer << endl;
     cout << "heap pointer with stack address " << heap_with_stack << endl;
@@ -46,8 +51,8 @@ void test_1(char * ptr) {
 void test_2(char * ptr) {
     cout << "Starting Test 2" << endl;
 
-    int * addr = reinterpret_cast<int *>(ptr) - 2;  // Compensate 2 integers subtracted during allocation
-    S::U::Heap * heap = reinterpret_cast<S::U::Heap *> (*addr); // Figure out heap like in Heap::typed_free
+    int * addr = reinterpret_cast<int *>(ptr) - 3;  // Compensate 2 integers subtracted during allocation
+    Heap * heap = reinterpret_cast<Heap *> (*addr); // Figure out heap like in Heap::typed_free
 
     void * data_end = reinterpret_cast<void *> (&_end);
     void * heap_pointer = reinterpret_cast<void *> (heap->start_address);  // Using a new variable created at the class Heap
@@ -55,6 +60,7 @@ void test_2(char * ptr) {
 
     assert(data_end != heap_pointer);
     assert(data_end != heap_with_stack);
+    assert(heap_pointer == APP_HEAP);
 
     cout << "heap pointer address " << heap_pointer << endl;
     cout << "heap pointer with stack address " << heap_with_stack << endl;

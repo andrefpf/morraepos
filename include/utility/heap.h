@@ -46,6 +46,7 @@ public:
         if(typed)
             bytes += sizeof(void *);  // add room for heap pointer
         bytes += sizeof(int);         // add room for size
+        
         if(bytes < sizeof(Element))
             bytes = sizeof(Element);
 
@@ -57,8 +58,10 @@ public:
 
         int * addr = reinterpret_cast<int *>(e->object() + e->size());
 
-        if(typed)
-            *addr++ = reinterpret_cast<size_t>(this);
+        if(typed) {
+            *addr = reinterpret_cast<size_t>(this);
+            addr += 2;
+        }
         *addr++ = bytes;
 
         db<Heaps>(TRC) << ") => " << reinterpret_cast<void *>(addr) << endl;
@@ -79,7 +82,8 @@ public:
     static void typed_free(void * ptr) {
         int * addr = reinterpret_cast<int *>(ptr);
         unsigned int bytes = *--addr;
-        Heap * heap = reinterpret_cast<Heap *>(*--addr);
+        addr -= 2;
+        Heap * heap = reinterpret_cast<Heap *>(*addr);
         heap->free(addr, bytes);
     }
 

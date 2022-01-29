@@ -9,8 +9,8 @@ __BEGIN_SYS
 template<> struct Traits<Build>: public Traits_Tokens
 {
     // Basic configuration
-    static const unsigned int MODE = LIBRARY;
-    static const unsigned int ARCHITECTURE = ARMv7;
+    static const unsigned int MODE = BUILTIN;
+    static const unsigned int ARCHITECTURE = ARMv8;
     static const unsigned int MACHINE = Cortex;
     static const unsigned int MODEL = Raspberry_Pi3;
     static const unsigned int CPUS = 1;
@@ -33,8 +33,8 @@ template<> struct Traits<Debug>: public Traits<Build>
 {
     static const bool error   = true;
     static const bool warning = true;
-    static const bool info    = false;
-    static const bool trace   = false;
+    static const bool info    = true;
+    static const bool trace   = true;
 };
 
 template<> struct Traits<Lists>: public Traits<Build>
@@ -129,7 +129,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
 
-    static const bool preemptive = true;
+    typedef RR Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

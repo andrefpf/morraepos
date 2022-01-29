@@ -23,8 +23,8 @@ public:
         db<Init>(INF) << "Initializing application's heap: " << endl;
         if(Traits<System>::multiheap) { // heap in data segment arranged by SETUP
             // Dinamically alocated pointers
-            Segment * tmp_segm = reinterpret_cast<Segment *>(&System::_preheap[0]);
-            Heap * tmp_heap = reinterpret_cast<Heap *>(&System::_preheap[sizeof(Segment)]);
+            Segment * tmp_segm = reinterpret_cast<Segment *>(&Application::_preheap[0]);
+            Heap * tmp_heap = reinterpret_cast<Heap *>(&Application::_preheap[sizeof(Segment)]);
 
             // Creates a new application segment with the appropriate flags
             Application::_heap_segment = new (tmp_segm) Segment(HEAP_SIZE, Segment::Flags::APP);
