@@ -17,7 +17,7 @@ void compare(CPU::Log_Addr a, CPU::Log_Addr b) {
 
 void test_1() 
 {
-	cout << "Init MMU test 1" << endl;
+    cout << "Init MMU test 1" << endl;
 
     System_Info * si = System::info();
 
@@ -48,21 +48,31 @@ void test_1()
 
 void test_2()
 {	
-	void * var_addr; 
 	cout << "Init MMU test 2\n" << endl;
-	cout << "Allocating sizeof(int) * 1000\n" << endl;
-
-	var_addr = malloc(sizeof(int) * 1000);
-
-	cout << "MMU::current=(" << MMU::current() << ")\n"<< endl;
-	compare(var_addr, MMU::current());
 	
-	cout << "CPU::ttbr0_el1()=(" << std::hex << CPU::ttbr0_el1() << ")\n" << endl;
-	cout << "That's it! 毛泽东万岁 !\n" << endl;
+	cout << "MMU::current=(" << MMU::current() << ")\n"<< endl;
+	cout << "CPU::ttbr0_el1()=(" << hex << CPU::ttbr0_el1() << ")\n" << endl;
+	compare(MMU::current(), CPU::ttbr0_el1());
+	cout << "Memory_Map::SYS_PD=(" << Memory_Map::SYS_PD << "\n" << endl;
+}
+
+void test_3()
+{
+	cout << "Init MMU test 2\n" << endl;
+	
+	CPU::Phy_Addr * var_addr = 0x00;
+	
+	cout << "Allocating sizeof(int) * 1000\n" << endl;
+	var_addr = ARMv8_MMU::alloc(sizeof(int) * 1000);
+	cout << "ARMv8_MMU::alloc sucefully!\n" << endl;
+	ARMv8_MMU::free(var_addr);
+	cout << "Memory sucefully free!\n" << endl;
 }
 int main()
 {
     test_1();
     test_2();
+    test_3();
+    cout << "That's it! 毛泽东万岁 !\n" << endl;
     return 0;
 }
