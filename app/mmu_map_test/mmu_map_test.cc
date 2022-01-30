@@ -11,7 +11,10 @@ void compare(CPU::Log_Addr a, CPU::Log_Addr b) {
     cout << endl;
 }
 
-void test_1() {
+void test_1() 
+{
+	cout << "Init MMU test 2" << endl;
+
     System_Info * si = System::info();
 
     cout << "App Code: " << endl;
@@ -39,10 +42,19 @@ void test_1() {
     compare(Memory_Map::SYS_PD, si->pmm.sys_pd);
 }
 
-
+void test_2()
+{	
+	static Phy_Addr * var_addr 
+	cout << "Init MMU test 2" << endl;
+	Address_Space self(MMU::current());
+	var_addr = self.alloc(sizeof(int) * 2);
+	cout << "MMU::current=(" << MMU::current() << ")"<< endl;
+	compare(var_addr, MMU::current());
+	cout << "MMU::ttbr0_el1()=(" << MMU::ttbr0_el1() << ")" << endl;
+}
 int main()
 {
     test_1();
-
+    test_2();
     return 0;
 }
