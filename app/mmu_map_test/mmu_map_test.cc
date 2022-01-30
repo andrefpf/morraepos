@@ -1,4 +1,8 @@
 #include <utility/ostream.h>
+#include <process.h>
+#include <memory.h>
+#include <architecture/armv8/armv8_mmu.h>
+#include <architecture/armv8/armv8_cpu.h>
 
 using namespace EPOS;
 using namespace EPOS::S;
@@ -13,44 +17,47 @@ void compare(CPU::Log_Addr a, CPU::Log_Addr b) {
 
 void test_1() 
 {
-	cout << "Init MMU test 2" << endl;
+	cout << "Init MMU test 1" << endl;
 
     System_Info * si = System::info();
 
-    cout << "App Code: " << endl;
+    cout << "App Code: " << "\n" << endl;
     compare(si->lm.app_code, si->pmm.app_code);
 
-    cout << "App Data: " << endl;
+    cout << "App Data: " <<  "\n" << endl;
     compare(si->lm.app_data, si->pmm.app_data);
 
-    cout << "Sys Code: " << endl;
+    cout << "Sys Code: " <<  "\n" << endl;
     compare(si->lm.sys_code, si->pmm.sys_code);
 
-    cout << "Sys Data: " << endl;
+    cout << "Sys Data: " << "\n" << endl;
     compare(si->lm.sys_data, si->pmm.sys_data);
 
-    cout << "Sys Stack: " << endl;
+    cout << "Sys Stack: " << "\n" << endl;
     compare(si->lm.sys_stack, si->pmm.sys_stack);
 
     cout << "Sys Info: " << endl;
     compare(Memory_Map::SYS_INFO, si->pmm.sys_info);
 
-    cout << "Sys Page Table: " << endl;
+    cout << "Sys Page Table: " << "\n" << endl;
     compare(Memory_Map::SYS_PT, si->pmm.sys_pt);
     
-    cout << "Sys Page Directory: " << endl;
+    cout << "Sys Page Directory: \n" << endl;
     compare(Memory_Map::SYS_PD, si->pmm.sys_pd);
 }
 
 void test_2()
 {	
-	static Phy_Addr * var_addr 
-	cout << "Init MMU test 2" << endl;
-	Address_Space self(MMU::current());
-	var_addr = self.alloc(sizeof(int) * 2);
-	cout << "MMU::current=(" << MMU::current() << ")"<< endl;
+	void * var_addr; 
+	cout << "Init MMU test 2\n" << endl;
+	//Allocating sizeof(int) * 1000
+	var_addr = malloc(sizeof(int) * 1000);
+
+	cout << "MMU::current=(" << MMU::current() << ")\n"<< endl;
 	compare(var_addr, MMU::current());
-	cout << "MMU::ttbr0_el1()=(" << MMU::ttbr0_el1() << ")" << endl;
+	
+	cout << "CPU::ttbr0_el1()=(" << CPU::ttbr0_el1() << ")\n" << endl;
+	cout << "That's it! 毛泽东万岁 !\n" << endl;
 }
 int main()
 {
