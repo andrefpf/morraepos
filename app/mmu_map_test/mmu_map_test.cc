@@ -50,13 +50,14 @@ void test_2()
 {	
 	void * var_addr; 
 	cout << "Init MMU test 2\n" << endl;
-	//Allocating sizeof(int) * 1000
+	cout << "Allocating sizeof(int) * 1000\n" << endl;
+
 	var_addr = malloc(sizeof(int) * 1000);
 
 	cout << "MMU::current=(" << MMU::current() << ")\n"<< endl;
 	compare(var_addr, MMU::current());
 	
-	cout << "CPU::ttbr0_el1()=(" << CPU::ttbr0_el1() << ")\n" << endl;
+	cout << "CPU::ttbr0_el1()=(" << std::hex << CPU::ttbr0_el1() << ")\n" << endl;
 	cout << "That's it! 毛泽东万岁 !\n" << endl;
 }
 int main()
