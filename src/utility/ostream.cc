@@ -25,7 +25,7 @@ int OStream::itoa(int v, char * s)
 
 int OStream::utoa(unsigned int v, char * s, unsigned int i)
 {
-    _base = 10;     // Por algum motivo quando chega aqui a base é 0 então vou forçar base 10 pra debugar por enquanto
+    // _base = 10;     // Por algum motivo quando chega aqui a base é 0 então vou forçar base 10 pra debugar por enquanto
     unsigned int j;
 
     if(!v) {
