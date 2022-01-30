@@ -53,12 +53,10 @@ void test_2()
 	cout << "MMU::current=(" << MMU::current() << ")\n"<< endl;
 	cout << "CPU::ttbr0_el1()=(" << hex << CPU::ttbr0_el1() << ")\n" << endl;
 	compare(MMU::current(), CPU::ttbr0_el1());
-	cout << "Memory_Map::SYS_PD=(" << Memory_Map::SYS_PD << "\n" << endl;
 }
-
 void test_3()
 {
-	cout << "Init MMU test 2\n" << endl;
+	cout << "Init MMU test 3\n" << endl;
 	
 	CPU::Phy_Addr * var_addr = 0x00;
 	
