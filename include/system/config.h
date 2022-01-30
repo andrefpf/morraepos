@@ -11,7 +11,7 @@
 #define ARCH armv8
 #define MACH cortex
 #define MMOD raspberry_pi3
-#define APPL mmu_map_test
+#define APPL test
 #define __mode_builtin__
 #define __arch_armv8__
 #define __mach_cortex__
